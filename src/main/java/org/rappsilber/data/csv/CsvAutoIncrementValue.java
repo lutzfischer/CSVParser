@@ -15,7 +15,6 @@
  */
 package org.rappsilber.data.csv;
 
-import java.util.HashMap;
 import org.rappsilber.utils.AutoIncrementValueMap;
 
 /**
@@ -24,6 +23,7 @@ import org.rappsilber.utils.AutoIncrementValueMap;
  * @author lfischer
  */
 public class CsvAutoIncrementValue extends AutoIncrementValueMap<String> implements CSVValueCalc{
+    private static final long serialVersionUID = -2333829781892981680L;
     private int sourceColumn;
 
     @Override
