@@ -868,7 +868,7 @@ public class CsvParser {
         if (v == MISSING_FIELD)
             return null;
         
-        return Integer.parseInt(v);
+        return (int)Double.parseDouble(v);
     }
     
     /**
@@ -884,7 +884,7 @@ public class CsvParser {
         if (v == MISSING_FIELD)
             return defaultValue;
         
-        return Integer.parseInt(v);
+        return (int)Double.parseDouble(v);
     }
     
     /**
