@@ -24,6 +24,7 @@ import org.rappsilber.utils.StringUtils;
 /**
  * Defines some standard alternatives for column names
  * Predominantly useful for proteomics related files.
+ * Also provides {@link #levenshteinMatchHeadersALternatives} for matching found headers against the registered alternatives to see what column name fits what registered name the best
  * @author lfischer
  */
 public abstract class ColumnAlternatives {

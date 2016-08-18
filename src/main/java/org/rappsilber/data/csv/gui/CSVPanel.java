@@ -28,7 +28,6 @@ import javax.swing.table.AbstractTableModel;
 import org.rappsilber.data.csv.CSVRandomAccess;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
-import org.rappsilber.gui.GenericJTablePopUpMenu;
 
 /**
  *
