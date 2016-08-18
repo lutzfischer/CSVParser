@@ -77,9 +77,9 @@ public class CsvParser {
     /** if we should guess the quote chars - what are the candidates**/
     protected static char[]             TEST_QUOTES = {'\'','"'};
     /** a pattern defining the values, that would interpreted as true */
-    public final static Pattern      ISTRUE = Pattern.compile("^(T|1|-1|TRUE|Y|YES|\\+)$",Pattern.CASE_INSENSITIVE);
+    public final static Pattern      ISTRUE = Pattern.compile("^(T|1(\\.0*)?|-1(\\.0*)?|TRUE|Y|YES|\\+)$",Pattern.CASE_INSENSITIVE);
     /** a pattern defining the values, that would interpreted as false */
-    public final static Pattern      ISFALSE = Pattern.compile("^(F|0|FALSE|N|NO|\\-)?$",Pattern.CASE_INSENSITIVE);
+    public final static Pattern      ISFALSE = Pattern.compile("^(F|0(\\.0*)?|FALSE|N|NO|\\-)?$",Pattern.CASE_INSENSITIVE);
     
     
     
