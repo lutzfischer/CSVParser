@@ -133,7 +133,7 @@ public abstract class ColumnAlternatives {
 //                    double dist = StringUtils.editCost(a.toLowerCase(), header.toLowerCase(), 1, 3) / (double)a.length();
                     double dist = StringUtils.editCost(a.toLowerCase(), header.toLowerCase(), 1.0, 0.5, 3.0,space) / (double)a.length();
                     
-                    if (dist < mindist && dist < 0.8) {
+                    if (dist < mindist && dist < 0.7) {
                         mindist = dist;
                     }
                 }

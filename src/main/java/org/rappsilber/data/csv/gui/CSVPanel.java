@@ -642,13 +642,13 @@ public class CSVPanel extends javax.swing.JPanel {
     private void initComponents() {
 
         pLoad = new javax.swing.JPanel();
-        fbCSVRead = new org.rappsilber.gui.FileBrowser();
+        fbCSVRead = new org.rappsilber.gui.components.FileBrowser();
         ckHasHeader = new javax.swing.JCheckBox();
         btnLoad = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         tblCSV = new javax.swing.JTable();
         pSave = new javax.swing.JPanel();
-        fbCSVWrite = new org.rappsilber.gui.FileBrowser();
+        fbCSVWrite = new org.rappsilber.gui.components.FileBrowser();
         btnSave = new javax.swing.JButton();
         jButton1 = new javax.swing.JButton();
 
@@ -776,8 +776,8 @@ public class CSVPanel extends javax.swing.JPanel {
     private javax.swing.JButton btnLoad;
     private javax.swing.JButton btnSave;
     private javax.swing.JCheckBox ckHasHeader;
-    private org.rappsilber.gui.FileBrowser fbCSVRead;
-    private org.rappsilber.gui.FileBrowser fbCSVWrite;
+    private org.rappsilber.gui.components.FileBrowser fbCSVRead;
+    private org.rappsilber.gui.components.FileBrowser fbCSVWrite;
     private javax.swing.JButton jButton1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JPanel pLoad;
