@@ -52,7 +52,7 @@
         </DimensionLayout>
       </Layout>
       <SubComponents>
-        <Component class="rappsilber.gui.components.FileBrowser" name="fbCSVRead">
+        <Component class="org.rappsilber.gui.components.FileBrowser" name="fbCSVRead">
         </Component>
         <Component class="javax.swing.JCheckBox" name="ckHasHeader">
           <Properties>
@@ -130,7 +130,7 @@
         </DimensionLayout>
       </Layout>
       <SubComponents>
-        <Component class="rappsilber.gui.components.FileBrowser" name="fbCSVWrite">
+        <Component class="org.rappsilber.gui.components.FileBrowser" name="fbCSVWrite">
         </Component>
         <Component class="javax.swing.JButton" name="btnSave">
           <Properties>

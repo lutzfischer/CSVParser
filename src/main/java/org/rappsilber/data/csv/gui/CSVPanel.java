@@ -28,6 +28,7 @@ import javax.swing.table.AbstractTableModel;
 import org.rappsilber.data.csv.CSVRandomAccess;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import org.rappsilber.data.csv.LoadListener;
 
 /**
  *
@@ -37,7 +38,7 @@ public class CSVPanel extends javax.swing.JPanel {
 
 
 
-    private class CSVListTableModel extends AbstractTableModel implements CSVRandomAccess.LoadListener {
+    private class CSVListTableModel extends AbstractTableModel implements LoadListener {
 
         int m_columcount = 0;
         int m_rowcount = 0;
@@ -410,7 +411,7 @@ public class CSVPanel extends javax.swing.JPanel {
                 tblCSV.getColumnModel().getColumn(0).setPreferredWidth(30);
             }
 
-            m_csv.addListenerComplete(new CSVRandomAccess.LoadListener() {
+            m_csv.addListenerComplete(new LoadListener() {
 
                 public void listen(int row, int column) {
                     fireActionPerformed(new ActionEvent(this, 1, "load complete"));

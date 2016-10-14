@@ -15,6 +15,8 @@
  */
 package org.rappsilber.data.csv;
 
+import org.rappsilber.data.csv.condition.CsvCondition;
+import org.rappsilber.data.csv.sort.CSVSort;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -41,131 +43,11 @@ public class CSVRandomAccess extends CsvParser {
     private final static Pattern NONNUMERIC = Pattern.compile("[^0-9E\\-.+]*");    
     private final static Pattern NUMERIC = Pattern.compile("[^0-9]*([\\+\\-]?(?:[0-9]+\\.?[0-9]*|\\.[0-9]+)(?:\\s?E[\\+\\s]?[0-9]+)?).*");    
     
-    /**
-     * CSVCondition is used to find rows in a csv-file that have a specific value in the given column
-     */
-    public class CSVCondition {
-        int field;
-        String value;
-        
-        /**
-         * creates a new condition
-         * @param field
-         * @param value
-         */
-        public CSVCondition(int field, String value) {
-            this.field = field;
-            this.value = value;
-        }
-        
-        /**
-         * returns whether the given row fits the condition
-         * @param row
-         * @return true if it does; false otherwise
-         */
-        boolean fits(int row) {
-            return m_data.get(row)[field].contentEquals(value);
-        } 
-        
-    }
     
-    /**
-     * Enum with constants for defining a how to sort a file
-     */
-    public static enum CSVSortType {
-
-        /**
-         * sort numeric - fileds are treated as double values and sorted by value
-         */
-        numeric,
-
-        /**
-         * sorted as string values
-         */
-        alphanumeric
-    }
     
-    /**
-     * base class that is used for comparing rows during sorting
-     */
-    public static abstract class CSVSort {
-        int field;
 
-        /**
-         *
-         * @param field
-         */
-        public CSVSort(int field) {
-            this.field = field;
-        }
-        
-        abstract int compare(String[] row1, String[] row2);
-        
-    }
 
-    /**
-     * implement a numeric compare of a given field for sorting the file
-     */
-    public static class CSVSortNumeric extends CSVSort {
-
-        /**
-         *
-         * @param field
-         */
-        public CSVSortNumeric(int field) {
-            super(field);
-        }
-        
-        int compare(String[] row1, String[] row2) {
-            Double d1;
-            Double d2;
-            try {
-                d1 = Double.parseDouble(row1[field]);
-            } catch (Exception nfe) {
-                d1 = Double.NEGATIVE_INFINITY;
-            } 
-            try {
-                d2 = Double.parseDouble(row2[field]);
-            } catch (Exception nfe) {
-                d2 = Double.NEGATIVE_INFINITY;
-            }
-            return d1.compareTo(d2);
-        }
-        
-    }
-
-    /**
-     * implement a string compare of a given field for sorting the file
-     */
-    public static class CSVSortAlphaNumeric extends CSVSort {
-
-        /**
-         * constructor
-         * @param field by what column to sort
-         */
-        public CSVSortAlphaNumeric(int field) {
-            super(field);
-        }
-        
-        @Override
-        int compare(String[] row1, String[] row2) {
-            return row1[field].compareTo(row2[field]);
-        }
-        
-    }
     
-    /**
-     * The loading and processing can be done asynchronous - listeners can be used to get information on completions 
-     */
-    public static interface LoadListener {
-
-        /**
-         * function to be called when the assigned event fires
-         * @param row
-         * @param column
-         */
-        void listen(int row,int column);
-    };
     
     /**
      * list of listeners to be notified if a file loading was finished
@@ -226,15 +108,15 @@ public class CSVRandomAccess extends CsvParser {
         super();
     }
 
-    /**
-     * returns a condition, that can be used to search for rows that have the given value
-     * @param field column where to look for the value
-     * @param value value to look for
-     * @return a new CSVConditin
-     */
-    public CSVCondition getCondition(int field, String value) {
-        return new CSVCondition(field, value);
-    }
+//    /**
+//     * returns a condition, that can be used to search for rows that have the given value
+//     * @param field column where to look for the value
+//     * @param value value to look for
+//     * @return a new CSVConditin
+//     */
+//    public CSVConditionString getCondition(int field, String value) {
+//        return new CSVConditionString(field, value, this);
+//    }
     
     /**
      * Read in a file as CSV-file
@@ -386,8 +268,12 @@ public class CSVRandomAccess extends CsvParser {
      * @param row 
      */
     public void setRow(int row) {
-        m_current = row -1;
-        next();
+        if (row <0) {
+            m_current = row;
+        } else {
+            m_current = row -1;
+            next();
+        }
     }
     
     /**
@@ -417,10 +303,10 @@ public class CSVRandomAccess extends CsvParser {
      * @param conditions
      * @return the first row that matches, if no row matches then -1 is returned
      */
-    public int findFirstRow(CSVCondition[] conditions) {
+    public int findFirstRow(CsvCondition[] conditions) {
         row: for (int i = 0; i<m_data.size(); i++) {
             for (int c =0; c< conditions.length; c++) {
-                if (!conditions[c].fits(i))
+                if (!conditions[c].fits(i,this))
                     continue row;
             }
             m_current = i;
@@ -435,11 +321,11 @@ public class CSVRandomAccess extends CsvParser {
      * @param conditions
      * @return the first row that matches, if no row matches then -1 is returned
      */
-    public int findFromCurrent(CSVCondition[] conditions) {
+    public int findFromCurrent(CsvCondition[] conditions) {
         
         row: for (int i = Math.max(m_current+1,0); i<m_data.size(); i++) {
             for (int c =0; c< conditions.length; c++) {
-                if (!conditions[c].fits(i))
+                if (!conditions[c].fits(i, this))
                     continue row;
             }
             m_current = i;
