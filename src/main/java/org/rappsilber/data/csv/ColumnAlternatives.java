@@ -16,6 +16,7 @@
 package org.rappsilber.data.csv;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import org.rappsilber.data.csv.CsvParser;
 import org.rappsilber.data.csv.CSVRandomAccess;
@@ -49,23 +50,33 @@ public abstract class ColumnAlternatives {
         {"lengthpeptide2", "peptide2 length", "peptide2 length", "peptide length 2", "length2"},
         {"peptide1", "peptide 1", "peptide", "modified sequence"},
         {"peptide2" , "peptide 2"},
-        {"precursermz", "precursor mz"},
+        {"precursermz", "precursor mz", "experimental mass", "exp mass"},
         {"precursor charge", "precoursorcharge", "charge"},
+        {"calculated mass", "calc mass", "theoretical mass"},
+        {"description1", "fasta1"},
+        {"description2", "fasta2"},
         {"protein1", "display protein1", "accession1"},
         {"protein2", "display protein2", "accession2"},};    
 
     
     private ColumnAlternatives() {}
-    
+
+        /**
+     * set known alternatives header-names for the given CSV-file
+     * @param csv 
+     */
+    public static void setupAlternatives(CsvParser csv) {
+        setupAlternatives(csv, COLUMN_ALIASES);
+    }
     
     /**
      * set known alternatives header-names for the given CSV-file
      * @param csv 
      */
-    public static void setupAlternatives(CsvParser csv) {
+    public static void setupAlternatives(CsvParser csv, String[][]  aliases) {
         // setup all alaises
-        for (int a = 0; a < COLUMN_ALIASES.length; a++) {
-            String[] ta = COLUMN_ALIASES[a];
+        for (int a = 0; a < aliases.length; a++) {
+            String[] ta = aliases[a];
             if (ta[0].contains(" ")) {
                 csv.setAlternative(ta[0], ta[0].replaceAll("\\s", "_"));
                 csv.setAlternative(ta[0], ta[0].replaceAll("\\s", ""));
@@ -80,12 +91,21 @@ public abstract class ColumnAlternatives {
         }
     }
     
-    
+
     /**
      * match column-names with alternatives with a bit of tolerance.
      * @param csv 
      */
     public static void levenshteinMatchHeadersALternatives(CsvParser csv) {
+        levenshteinMatchHeadersALternatives(csv, new HashMap<String, String>());
+    }
+    
+    /**
+     * match column-names with alternatives with a bit of tolerance.
+     * @param csv 
+     * @param nonAccpetedMapping maps expected column titles to realworld column titels that should not be mapped - even if they appear to be the nearest string
+     */
+    public static void levenshteinMatchHeadersALternatives(CsvParser csv, HashMap<String,String> nonAccpetedMapping) {
         ArrayList<HashSet<String>> allAlternatives = csv.getHeaderAlternatives();
         ArrayList<String> unmatchedHeaders = new ArrayList<String>();
         ArrayList<HashSet<String>> unmatchedAlternatives = new ArrayList<HashSet<String>>();
@@ -125,8 +145,17 @@ public abstract class ColumnAlternatives {
         
         // calculate the minmal distance for each alternative set and each header 
         for (int alt =0; alt< unmatchedAlternatives.size(); alt++) {
+            HashSet<String> colAlternatives = unmatchedAlternatives.get(alt);
+            HashSet<String> excludedMappings = new HashSet();
+            for (String excluded : nonAccpetedMapping.keySet()) {
+                if (colAlternatives.contains(excluded)) {
+                    excludedMappings.add(nonAccpetedMapping.get(excluded));
+                }
+            }
             for (int h = 0; h < unmatchedHeaders.size(); h++) {
                 String header = unmatchedHeaders.get(h);
+                if (excludedMappings.contains(header))
+                    continue;
                 double mindist = Double.MAX_VALUE;
                 
                 for ( String a : unmatchedAlternatives.get(alt)) {
