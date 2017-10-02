@@ -25,7 +25,7 @@ import org.rappsilber.utils.StringUtils;
 /**
  * Defines some standard alternatives for column names
  * Predominantly useful for proteomics related files.
- * Also provides {@link #levenshteinMatchHeadersALternatives} for matching found headers against the registered alternatives to see what column name fits what registered name the best
+ * Also provides {@link #levenshteinMatchHeadersAlternatives} for matching found headers against the registered alternatives to see what column name fits what registered name the best
  * @author lfischer
  */
 public abstract class ColumnAlternatives {
@@ -97,16 +97,25 @@ public abstract class ColumnAlternatives {
      * match column-names with alternatives with a bit of tolerance.
      * @param csv 
      */
-    public static void levenshteinMatchHeadersALternatives(CsvParser csv) {
-        levenshteinMatchHeadersALternatives(csv, new HashMap<String, String[]>());
+    public static void levenshteinMatchHeadersAlternatives(CsvParser csv) {
+        ColumnAlternatives.levenshteinMatchHeadersAlternatives(csv, new HashMap<String, String[]>(),0.7);
     }
-    
+
     /**
      * match column-names with alternatives with a bit of tolerance.
      * @param csv 
      * @param nonAccpetedMapping maps expected column titles to realworld column titels that should not be mapped - even if they appear to be the nearest string
      */
-    public static void levenshteinMatchHeadersALternatives(CsvParser csv, HashMap<String,String[]> nonAccpetedMapping) {
+    public static void levenshteinMatchHeadersAlternatives(CsvParser csv, HashMap<String,String[]> nonAccpetedMapping) {
+        levenshteinMatchHeadersAlternatives(csv, nonAccpetedMapping, 0.7);
+    }
+
+    /**
+     * match column-names with alternatives with a bit of tolerance.
+     * @param csv 
+     * @param nonAccpetedMapping maps expected column titles to realworld column titels that should not be mapped - even if they appear to be the nearest string
+     */
+    public static void levenshteinMatchHeadersAlternatives(CsvParser csv, HashMap<String,String[]> nonAccpetedMapping, double maxdistance) {
         ArrayList<HashSet<String>> allAlternatives = csv.getHeaderAlternatives();
         ArrayList<String> unmatchedHeaders = new ArrayList<String>();
         ArrayList<HashSet<String>> unmatchedAlternatives = new ArrayList<HashSet<String>>();
@@ -155,6 +164,7 @@ public abstract class ColumnAlternatives {
                 }
             }
             for (int h = 0; h < unmatchedHeaders.size(); h++) {
+                dists[alt][h]=Double.MAX_VALUE;
                 String header = unmatchedHeaders.get(h);
                 if (excludedMappings.contains(header))
                     continue;
@@ -162,7 +172,7 @@ public abstract class ColumnAlternatives {
                 
                 alternatives: for ( String a : unmatchedAlternatives.get(alt)) {
 //                    double dist = StringUtils.editCost(a.toLowerCase(), header.toLowerCase(), 1, 3) / (double)a.length();
-                    double dist = StringUtils.editCost(a.toLowerCase(), header.toLowerCase(), 1.0, 0.5, 3.0,space) / (double)a.length();
+                    double dist = StringUtils.editCost(a.toLowerCase(), header.toLowerCase(), 1.0, 0.1, 3.0,space) / (double)a.length();
                     for (String e : excludedMappings) {
                         double edist = StringUtils.editCost(e.toLowerCase(), header.toLowerCase(), 1.0, 0.5, 3.0,space) / (double)a.length();
                         // if this header matches an excluded mapping better then
@@ -171,7 +181,7 @@ public abstract class ColumnAlternatives {
                             continue alternatives;
                     }
                     
-                    if (dist < mindist && dist < 0.7) {
+                    if (dist < mindist && dist < maxdistance) {
                         mindist = dist;
                     }
                 }
