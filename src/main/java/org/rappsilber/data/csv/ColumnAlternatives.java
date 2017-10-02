@@ -72,6 +72,7 @@ public abstract class ColumnAlternatives {
     /**
      * set known alternatives header-names for the given CSV-file
      * @param csv 
+     * @param aliases a set of column names that should be treated as the same
      */
     public static void setupAlternatives(CsvParser csv, String[][]  aliases) {
         // setup all alaises
@@ -97,7 +98,7 @@ public abstract class ColumnAlternatives {
      * @param csv 
      */
     public static void levenshteinMatchHeadersALternatives(CsvParser csv) {
-        levenshteinMatchHeadersALternatives(csv, new HashMap<String, String>());
+        levenshteinMatchHeadersALternatives(csv, new HashMap<String, String[]>());
     }
     
     /**
@@ -105,7 +106,7 @@ public abstract class ColumnAlternatives {
      * @param csv 
      * @param nonAccpetedMapping maps expected column titles to realworld column titels that should not be mapped - even if they appear to be the nearest string
      */
-    public static void levenshteinMatchHeadersALternatives(CsvParser csv, HashMap<String,String> nonAccpetedMapping) {
+    public static void levenshteinMatchHeadersALternatives(CsvParser csv, HashMap<String,String[]> nonAccpetedMapping) {
         ArrayList<HashSet<String>> allAlternatives = csv.getHeaderAlternatives();
         ArrayList<String> unmatchedHeaders = new ArrayList<String>();
         ArrayList<HashSet<String>> unmatchedAlternatives = new ArrayList<HashSet<String>>();
@@ -149,7 +150,8 @@ public abstract class ColumnAlternatives {
             HashSet<String> excludedMappings = new HashSet();
             for (String excluded : nonAccpetedMapping.keySet()) {
                 if (colAlternatives.contains(excluded)) {
-                    excludedMappings.add(nonAccpetedMapping.get(excluded));
+                    for (String e:nonAccpetedMapping.get(excluded))
+                        excludedMappings.add(e);
                 }
             }
             for (int h = 0; h < unmatchedHeaders.size(); h++) {
@@ -158,9 +160,16 @@ public abstract class ColumnAlternatives {
                     continue;
                 double mindist = Double.MAX_VALUE;
                 
-                for ( String a : unmatchedAlternatives.get(alt)) {
+                alternatives: for ( String a : unmatchedAlternatives.get(alt)) {
 //                    double dist = StringUtils.editCost(a.toLowerCase(), header.toLowerCase(), 1, 3) / (double)a.length();
                     double dist = StringUtils.editCost(a.toLowerCase(), header.toLowerCase(), 1.0, 0.5, 3.0,space) / (double)a.length();
+                    for (String e : excludedMappings) {
+                        double edist = StringUtils.editCost(e.toLowerCase(), header.toLowerCase(), 1.0, 0.5, 3.0,space) / (double)a.length();
+                        // if this header matches an excluded mapping better then
+                        // the expected - don't considere it
+                        if (edist < dist)
+                            continue alternatives;
+                    }
                     
                     if (dist < mindist && dist < 0.7) {
                         mindist = dist;
