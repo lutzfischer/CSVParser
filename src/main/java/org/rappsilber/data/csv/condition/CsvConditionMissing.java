@@ -11,18 +11,16 @@ import org.rappsilber.data.csv.CsvParser;
 /**
  * CsvConditionStringEqual is used to find rows in a csv-file that have a specific value in the given column
  */
-public class CsvConditionStringLessThen implements CsvCondition {
+public class CsvConditionMissing implements CsvCondition {
     int field;
-    String value;
 
     /**
      * creates a new condition
      * @param field
      * @param value
      */
-    public CsvConditionStringLessThen(int field, String value) {
+    public CsvConditionMissing(int field) {
         this.field = field;
-        this.value = value;
     }
 
     /**
@@ -32,7 +30,7 @@ public class CsvConditionStringLessThen implements CsvCondition {
      */
     @Override
     public boolean fits(int row, CSVRandomAccess csv) {
-        return csv.getValue(field,row).compareTo(value)<0;
+        return csv.isMissing(field,row);
     }
     
     /**
@@ -42,7 +40,7 @@ public class CsvConditionStringLessThen implements CsvCondition {
      */
     @Override
     public boolean fits(CsvParser csv) {
-        return csv.getValue(field).compareTo(value)<0;
+        return csv.isMissing(field);
     }
     
     

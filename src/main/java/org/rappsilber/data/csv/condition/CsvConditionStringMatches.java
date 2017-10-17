@@ -5,24 +5,25 @@
  */
 package org.rappsilber.data.csv.condition;
 
+import java.util.regex.Pattern;
 import org.rappsilber.data.csv.CSVRandomAccess;
 import org.rappsilber.data.csv.CsvParser;
 
 /**
  * CsvConditionStringEqual is used to find rows in a csv-file that have a specific value in the given column
  */
-public class CsvConditionStringLessThen implements CsvCondition {
+public class CsvConditionStringMatches implements CsvCondition {
     int field;
-    String value;
+    Pattern value;
 
     /**
      * creates a new condition
      * @param field
      * @param value
      */
-    public CsvConditionStringLessThen(int field, String value) {
+    public CsvConditionStringMatches(int field, String value) {
         this.field = field;
-        this.value = value;
+        this.value = Pattern.compile(value);
     }
 
     /**
@@ -32,7 +33,7 @@ public class CsvConditionStringLessThen implements CsvCondition {
      */
     @Override
     public boolean fits(int row, CSVRandomAccess csv) {
-        return csv.getValue(field,row).compareTo(value)<0;
+        return value.matcher(csv.getValue(field,row)).matches();
     }
     
     /**
@@ -42,7 +43,7 @@ public class CsvConditionStringLessThen implements CsvCondition {
      */
     @Override
     public boolean fits(CsvParser csv) {
-        return csv.getValue(field).compareTo(value)<0;
+        return value.matcher(csv.getValue(field)).matches();
     }
     
     

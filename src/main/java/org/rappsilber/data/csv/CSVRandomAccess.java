@@ -677,6 +677,26 @@ public class CSVRandomAccess extends CsvParser {
         //ISFALSE.split(v);
         return ! ISFALSE.matcher(v).matches();
     }
+    
+    /**
+     * returns if the specified field has no value (empty string)
+     * @param field column 
+     * @param row row
+     * @return true if no value was found  - false otherwise.
+     */    
+    public boolean isMissing(int field, Integer row) {
+        return getValue(field, row) == MISSING_FIELD; 
+    }
+
+    /**
+     * returns if the specified field has no value (empty string)
+     * @param field column 
+     * @param row row
+     * @return true if no value was found  - false otherwise.
+     */    
+    public boolean isMissing(String field, Integer row) {
+        return getValue(field, row) == MISSING_FIELD; 
+    }
 
     /**
      * returns the specified value interpreted as boolean. 
@@ -1230,5 +1250,33 @@ public class CSVRandomAccess extends CsvParser {
         super.cleanHeader();
         fireHeaderChanged();
     }
+    
+    public void addRow(String[] data) {
+        this.m_data.add(data);
+        if (getMaxColumns()<data.length) {
+            setMaxColumns(data.length);
+        }
+        notifyProgress(m_data.size()-1);
+    }
+
+    public CSVRandomAccess applyFilter(CsvCondition filter) {
+        if (filter==null) {
+            return this;
+        }
+        CSVRandomAccess ret = new CSVRandomAccess(this.getDelimiter().charAt(0), this.getQuote().charAt(0));
+        if (hasHeader())
+            ret.setHeader(this.getHeader());
+        
+        for (int r= 0; r<getRowCount(); r++) {
+            if (filter.fits(r, this))
+                ret.addRow(this.getValues(r));
+        }
+        return ret;
+    }
+
+    private String[] getValues(int r) {
+        return m_data.get(r);
+    }
+
     
 }

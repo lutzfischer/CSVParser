@@ -17,7 +17,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -37,7 +36,7 @@ import org.rappsilber.data.csv.LoadListener;
  *
  * @author lfischer
  */
-public class CSVPanel extends javax.swing.JPanel {
+public class CSVFilteredPanel extends javax.swing.JPanel {
 
 
 
@@ -45,9 +44,9 @@ public class CSVPanel extends javax.swing.JPanel {
 
         int m_columcount = 0;
         int m_rowcount = 0;
-        CSVPanel m_parent;
+        CSVFilteredPanel m_parent;
 
-        public CSVListTableModel(CSVPanel p) {
+        public CSVListTableModel(CSVFilteredPanel p) {
             m_parent = p;
             if (getCSV() != null) {
                 getCSV().addListenerComplete(this);
@@ -219,6 +218,8 @@ public class CSVPanel extends javax.swing.JPanel {
     }
 
     private CSVRandomAccess m_csv;
+    private CSVRandomAccess m_csvUnfiltered;
+    
 //    ArrayList<String[]> m_csvData = new ArrayList<String[]>();
     //int                          m_maxColumns = 0;
     private CSVListTableModel m_model;
@@ -252,7 +253,7 @@ public class CSVPanel extends javax.swing.JPanel {
 
 
     /** Creates new form CSVPanel */
-    public CSVPanel() {
+    public CSVFilteredPanel() {
         initComponents();
         String[] extensions = new String[]{".csv", ".tsv", ".txt"};
         fbCSVRead.setDescription("TextTables(CSV,TSV)");
@@ -419,6 +420,7 @@ public class CSVPanel extends javax.swing.JPanel {
                 public void listen(int row, int column) {
                     fireActionPerformed(new ActionEvent(this, 1, "load complete"));
                     m_model.csvChanged();
+                    m_csvUnfiltered = m_csv;
                 }
                 
             });
@@ -538,7 +540,7 @@ public class CSVPanel extends javax.swing.JPanel {
             public void run() {
                 JFrame window = new JFrame();
                 window.setLayout(new BorderLayout());
-                CSVPanel csv = new CSVPanel();
+                CSVFilteredPanel csv = new CSVFilteredPanel();
                 window.setPreferredSize(csv.getPreferredSize());
                 window.add(csv, BorderLayout.CENTER);
                 window.pack();
@@ -549,7 +551,6 @@ public class CSVPanel extends javax.swing.JPanel {
                     }
                     
                 });
-
                 window.setVisible(true);
             }
         });
@@ -560,11 +561,24 @@ public class CSVPanel extends javax.swing.JPanel {
         try {
             CSVRandomAccess csv = CSVRandomAccess.guessCsvAsync(fbCSVRead.getFile(), 30, ckHasHeader.isSelected());
             setCSV(csv);
+            setFilterColumns();
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(CSVPanel.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(CSVFilteredPanel.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(CSVPanel.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(CSVFilteredPanel.class.getName()).log(Level.SEVERE, null, ex);
         }
+//        m_model = new CSVListTableModel(this);
+//        tblCSV.setModel(m_model);
+//        tblCSV.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+//        for (int i = 0; i < tblCSV.getColumnCount(); i++) {
+//            tblCSV.getColumnModel().getColumn(0).setPreferredWidth(30);
+//        }
+//        m_model = new CSVListTableModel(this);
+//        tblCSV.setModel(m_model);
+//        tblCSV.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+//        for (int i = 0; i < tblCSV.getColumnCount(); i++) {
+//            tblCSV.getColumnModel().getColumn(0).setPreferredWidth(30);
+//        }
 //        m_model = new CSVListTableModel(this);
 //        tblCSV.setModel(m_model);
 //        tblCSV.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
@@ -585,7 +599,7 @@ public class CSVPanel extends javax.swing.JPanel {
             m_csv.writeFile(pw);
             pw.close();
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(CSVPanel.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(CSVFilteredPanel.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -657,6 +671,8 @@ public class CSVPanel extends javax.swing.JPanel {
         fbCSVRead = new org.rappsilber.gui.components.FileBrowser();
         ckHasHeader = new javax.swing.JCheckBox();
         btnLoad = new javax.swing.JButton();
+        conditionList1 = new org.rappsilber.data.csv.gui.filter.ConditionList();
+        btnApply = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         tblCSV = new javax.swing.JTable();
         pSave = new javax.swing.JPanel();
@@ -680,16 +696,28 @@ public class CSVPanel extends javax.swing.JPanel {
             }
         });
 
+        btnApply.setText("Apply");
+        btnApply.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnApplyActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout pLoadLayout = new javax.swing.GroupLayout(pLoad);
         pLoad.setLayout(pLoadLayout);
         pLoadLayout.setHorizontalGroup(
             pLoadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, pLoadLayout.createSequentialGroup()
-                .addComponent(fbCSVRead, javax.swing.GroupLayout.DEFAULT_SIZE, 169, Short.MAX_VALUE)
+                .addGroup(pLoadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(conditionList1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                    .addGroup(pLoadLayout.createSequentialGroup()
+                        .addComponent(fbCSVRead, javax.swing.GroupLayout.DEFAULT_SIZE, 383, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(ckHasHeader)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(ckHasHeader)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btnLoad, javax.swing.GroupLayout.PREFERRED_SIZE, 95, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGroup(pLoadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(btnLoad, javax.swing.GroupLayout.DEFAULT_SIZE, 95, Short.MAX_VALUE)
+                    .addComponent(btnApply, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
         );
         pLoadLayout.setVerticalGroup(
             pLoadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -700,7 +728,11 @@ public class CSVPanel extends javax.swing.JPanel {
                     .addGroup(pLoadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                         .addComponent(btnLoad, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(ckHasHeader)))
-                .addGap(40, 40, 40))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(pLoadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(btnApply, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(conditionList1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap())
         );
 
         add(pLoad, java.awt.BorderLayout.NORTH);
@@ -740,7 +772,7 @@ public class CSVPanel extends javax.swing.JPanel {
         pSaveLayout.setHorizontalGroup(
             pSaveLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, pSaveLayout.createSequentialGroup()
-                .addComponent(fbCSVWrite, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+                .addComponent(fbCSVWrite, javax.swing.GroupLayout.DEFAULT_SIZE, 518, Short.MAX_VALUE)
                 .addGap(2, 2, 2)
                 .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -779,15 +811,41 @@ public class CSVPanel extends javax.swing.JPanel {
         if (m_csv != null) {
             m_csv.switchHeader();
             csvChanged();
+            setFilterColumns();
         }
     
             
     }//GEN-LAST:event_ckHasHeaderActionPerformed
 
+    protected void setFilterColumns() {
+        String[] header =m_csv.getHeader();
+        if (header == null) {
+            header = new String[m_csv.getMaxColumns()];
+            for (int i = 0 ; i<header.length;i++) {
+                header[i]=Integer.toString(i);
+            }
+        } else if (header.length < m_csv.getMaxColumns()) {
+            String[] dummy = header;
+            header=new String[m_csv.getMaxColumns()];
+            System.arraycopy(dummy, 0, header, 0, dummy.length);
+            for (int c = dummy.length;c<header.length; c++) {
+                header[c]=Integer.toString(c);
+            }
+        }
+        conditionList1.setColumns(header);
+    }
+
+    private void btnApplyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnApplyActionPerformed
+        m_csv = m_csvUnfiltered.applyFilter(conditionList1.getCondition());
+        m_model.csvChanged();
+    }//GEN-LAST:event_btnApplyActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnApply;
     private javax.swing.JButton btnLoad;
     private javax.swing.JButton btnSave;
     private javax.swing.JCheckBox ckHasHeader;
+    private org.rappsilber.data.csv.gui.filter.ConditionList conditionList1;
     private org.rappsilber.gui.components.FileBrowser fbCSVRead;
     private org.rappsilber.gui.components.FileBrowser fbCSVWrite;
     private javax.swing.JButton jButton1;
