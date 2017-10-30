@@ -140,15 +140,17 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
         cbOperant.setSelectedItem("AND");
     }
     
-    public void setColumns(String[] columns) {
+    public int setColumns(String[] columns) {
         this.columns = columns;
+        int ret = 0;
         for (CSVConditionProvider c: conditions) 
-            c.setColumns(columns);
+            ret = ret + c.setColumns(columns);
         if (conditions.size() == 0) {
             Condition c = new Condition(columns);
             conditions.add(c);
             pList.add(c);
         }
+        return ret;
     }
     
     /**

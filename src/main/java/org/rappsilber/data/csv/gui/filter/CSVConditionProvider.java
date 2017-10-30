@@ -13,5 +13,5 @@ import org.rappsilber.data.csv.condition.CsvCondition;
  */
 public interface CSVConditionProvider {
     CsvCondition getCondition();
-    void setColumns(String[] colnames);
+    int setColumns(String[] colnames);
 }

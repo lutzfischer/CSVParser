@@ -17,6 +17,21 @@
         </DimensionLayout>
       </Layout>
     </Container>
+    <Component class="javax.swing.JComboBox" name="jComboBox1">
+      <Properties>
+        <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
+          <StringArray count="4">
+            <StringItem index="0" value="Item 1"/>
+            <StringItem index="1" value="Item 2"/>
+            <StringItem index="2" value="Item 3"/>
+            <StringItem index="3" value="Item 4"/>
+          </StringArray>
+        </Property>
+      </Properties>
+      <AuxValues>
+        <AuxValue name="JavaCodeGenerator_TypeParameters" type="java.lang.String" value="&lt;String&gt;"/>
+      </AuxValues>
+    </Component>
   </NonVisualComponents>
   <AuxValues>
     <AuxValue name="FormSettings_autoResourcing" type="java.lang.Integer" value="0"/>
@@ -36,11 +51,13 @@
           <Group type="102" attributes="0">
               <Component id="ckNot" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
-              <Component id="cbColumn" pref="60" max="32767" attributes="0"/>
+              <Component id="cbColumn" pref="58" max="32767" attributes="0"/>
               <EmptySpace type="unrelated" max="-2" attributes="0"/>
               <Component id="cbOperant" min="-2" max="-2" attributes="0"/>
-              <EmptySpace type="unrelated" max="-2" attributes="0"/>
-              <Component id="cbValue" pref="61" max="32767" attributes="0"/>
+              <EmptySpace min="-2" pref="12" max="-2" attributes="0"/>
+              <Component id="cbColumnCompare" pref="54" max="32767" attributes="0"/>
+              <EmptySpace max="-2" attributes="0"/>
+              <Component id="txtValue" pref="60" max="32767" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
@@ -48,7 +65,8 @@
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="103" alignment="0" groupAlignment="3" attributes="0">
               <Component id="cbOperant" alignment="3" min="-2" max="-2" attributes="0"/>
-              <Component id="cbValue" alignment="3" min="-2" max="-2" attributes="0"/>
+              <Component id="txtValue" alignment="3" min="-2" max="-2" attributes="0"/>
+              <Component id="cbColumnCompare" alignment="3" min="-2" max="-2" attributes="0"/>
           </Group>
           <Group type="103" groupAlignment="3" attributes="0">
               <Component id="cbColumn" alignment="3" min="-2" max="-2" attributes="0"/>
@@ -74,15 +92,7 @@
     <Component class="javax.swing.JComboBox" name="cbOperant">
       <Properties>
         <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
-          <StringArray count="7">
-            <StringItem index="0" value="="/>
-            <StringItem index="1" value="&gt;"/>
-            <StringItem index="2" value="&gt;="/>
-            <StringItem index="3" value="&lt;"/>
-            <StringItem index="4" value="&lt;="/>
-            <StringItem index="5" value="contains"/>
-            <StringItem index="6" value=" "/>
-          </StringArray>
+          <StringArray count="0"/>
         </Property>
       </Properties>
       <Events>
@@ -92,12 +102,22 @@
         <AuxValue name="JavaCodeGenerator_TypeParameters" type="java.lang.String" value="&lt;String&gt;"/>
       </AuxValues>
     </Component>
-    <Component class="javax.swing.JTextField" name="cbValue">
+    <Component class="javax.swing.JTextField" name="txtValue">
     </Component>
     <Component class="javax.swing.JCheckBox" name="ckNot">
       <Properties>
         <Property name="text" type="java.lang.String" value="Not"/>
       </Properties>
+    </Component>
+    <Component class="javax.swing.JComboBox" name="cbColumnCompare">
+      <Properties>
+        <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
+          <StringArray count="0"/>
+        </Property>
+      </Properties>
+      <AuxValues>
+        <AuxValue name="JavaCodeGenerator_TypeParameters" type="java.lang.String" value="&lt;String&gt;"/>
+      </AuxValues>
     </Component>
   </SubComponents>
 </Form>

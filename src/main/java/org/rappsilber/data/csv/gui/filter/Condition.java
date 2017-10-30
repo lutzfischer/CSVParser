@@ -8,16 +8,23 @@ package org.rappsilber.data.csv.gui.filter;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.HashSet;
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import org.rappsilber.data.csv.condition.CsvCondition;
+import org.rappsilber.data.csv.condition.CsvConditionContainsField;
 import org.rappsilber.data.csv.condition.CsvConditionDoubleEqual;
 import org.rappsilber.data.csv.condition.CsvConditionDoubleGreaterEqual;
 import org.rappsilber.data.csv.condition.CsvConditionDoubleGreaterThen;
 import org.rappsilber.data.csv.condition.CsvConditionDoubleLessEqual;
 import org.rappsilber.data.csv.condition.CsvConditionDoubleLessThen;
+import org.rappsilber.data.csv.condition.CsvConditionEqualsField;
+import org.rappsilber.data.csv.condition.CsvConditionGreaterField;
+import org.rappsilber.data.csv.condition.CsvConditionGreaterOrEqualsField;
+import org.rappsilber.data.csv.condition.CsvConditionLessField;
+import org.rappsilber.data.csv.condition.CsvConditionLessOrEqualsField;
 import org.rappsilber.data.csv.condition.CsvConditionMissing;
 import org.rappsilber.data.csv.condition.CsvConditionNot;
 import org.rappsilber.data.csv.condition.CsvConditionStringContains;
@@ -36,18 +43,46 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
 
     String[] columns;
     boolean addedAndOR = false;
+    HashSet<String> fieldCompares;
+    String[] operants;
+    String equals = "=";
+    String gt =">"; 
+    String ge = ">=";
+    String lt = "<";
+    String le = "<=";
+    String contains ="contains";
+    String matches ="regex";
+    String equalsField = "= field";
+    String geField = ">= field";
+    String gtField = "> field";
+    String ltField = "< field";
+    String leField = "<= field";
+    String containsField = "contains field";
     ArrayList<ChangeListener>  ChangeListeners = new ArrayList<>();
     /**
      * Creates new form AndCondition
      */
     public Condition() {
         initComponents();
+        new JButton().addActionListener(cbColumn);
+        cbColumnCompare.setVisible(false);
+        operants=new String[] {
+            equals,gt,ge,lt,le,contains,equalsField,gtField,geField,ltField,leField,containsField
+        };
+        fieldCompares = new HashSet<>();
+        fieldCompares.add(equalsField);
+        fieldCompares.add(gtField);
+        fieldCompares.add(geField);
+        fieldCompares.add(ltField);
+        fieldCompares.add(leField);
+        fieldCompares.add(containsField);
+        cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(operants));
     }
 
     public Condition(String[] columns) {
-        initComponents();
+        this();
         setColumns(columns);
-        new JButton().addActionListener(cbColumn);
+        
     }    
 
     /**
@@ -68,7 +103,19 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
         listenerList.remove(ChangeListener.class, l);
     }
     
-    public void setColumns(String[] columns) {
+    public int setColumns(String[] columns) {
+        int ret =0;
+        Integer selectedColumn = null;
+        String selectedColumnName = null;
+        Integer selectedColumnCompare = null;
+        String selectedColumnCompareName = null;
+        // if we had some previous selection remember these
+        if (this.columns != null && this.columns.length >0) {
+            selectedColumn = cbColumn.getSelectedIndex();
+            selectedColumnName = (String) cbColumn.getSelectedItem();
+            selectedColumnCompare = cbColumnCompare.getSelectedIndex();
+            selectedColumnCompareName = (String) cbColumnCompare.getSelectedItem();
+        }
         this.columns=columns;
         String[] colDropDown = new String[columns.length+3];
         colDropDown[0]="";
@@ -76,6 +123,41 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
         colDropDown[2]="OR";
         System.arraycopy(columns, 0, colDropDown, 3, columns.length);
         cbColumn.setModel(new javax.swing.DefaultComboBoxModel<>(colDropDown));
+        cbColumnCompare.setModel(new javax.swing.DefaultComboBoxModel<>(columns));
+
+        // if we had some previous selection try to restore these
+        if (selectedColumn != null) {
+            Integer newColumnName = null;
+            for (int  i = 0; i < colDropDown.length; i++) {
+                if (colDropDown[i].contentEquals(selectedColumnName)) {
+                    if (newColumnName == null || Math.abs(i - selectedColumn) < Math.abs(newColumnName - selectedColumn)) {
+                        newColumnName = i;
+                    }
+                }
+            }
+            if (newColumnName != null) {
+                cbColumn.setSelectedIndex(newColumnName);
+            } else {
+                ret++;
+            }
+        }
+        // if we had some previous selection try to restore these
+        if (selectedColumnCompare != null) {
+            Integer newColumnName = null;
+            for (int  i = 0; i < columns.length; i++) {
+                if (columns[i].contentEquals(selectedColumnCompareName)) {
+                    if (newColumnName == null || Math.abs(i - selectedColumnCompare) < Math.abs(newColumnName - selectedColumnCompare)) {
+                        newColumnName = i;
+                    }
+                }
+            }
+            if (newColumnName != null) {
+                cbColumnCompare.setSelectedIndex(newColumnName);
+            } else {
+                ret++;
+            }
+        }
+        return ret;
     }
     
     public void setEmpty(){
@@ -90,52 +172,68 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
     }
     
     public CsvCondition getCondition() {
-        String op = cbOperant.getSelectedItem().toString();
-        String vs = cbValue.getText();
+        String op = (String) cbOperant.getSelectedItem();
+        String vs = txtValue.getText();
         int col = cbColumn.getSelectedIndex()-3;
         CsvCondition con = null;
         if (col<0)
             return null;
-        
-        Double vd = null;
-        if (!cbOperant.getSelectedItem().toString().contentEquals("contains")) {
-            try {
-                vd = Double.parseDouble(vs);
-            } catch (NumberFormatException ne) {
-            }
-        }
-        
-        if (vd != null) {
-            // we assume a numeric value
-            if (op.contentEquals("=")) {
-                con = new CsvConditionDoubleEqual(col, vd);
-            } else if (op.contentEquals(">=")) {
-                con = new CsvConditionDoubleGreaterEqual(col, vd);
-            } else if (op.contentEquals("<=")) {
-                con = new CsvConditionDoubleLessEqual(col, vd);
-            } if (op.contentEquals(">")) {
-                con = new CsvConditionDoubleGreaterThen(col, vd);
-            } else if (op.contentEquals("<")) {
-                con = new CsvConditionDoubleLessThen(col, vd);
+        if (fieldCompares.contains(op)) {
+            if (op == equalsField) {
+                    con = new CsvConditionEqualsField(col, cbColumnCompare.getSelectedIndex());
+            } else if (op == gtField) {
+                    con = new CsvConditionGreaterField(col, cbColumnCompare.getSelectedIndex());
+            } else if (op == geField) {
+                    con = new CsvConditionGreaterOrEqualsField(col, cbColumnCompare.getSelectedIndex());
+            } else if (op == ltField) {
+                    con = new CsvConditionLessField(col, cbColumnCompare.getSelectedIndex());
+            } else if (op == leField) {
+                    con = new CsvConditionLessOrEqualsField(col, cbColumnCompare.getSelectedIndex());
+            } else if (op == containsField) {
+                    con = new CsvConditionContainsField(col, cbColumnCompare.getSelectedIndex());
             }
         } else {
-            if (vs.isEmpty()) {
-                con = new CsvConditionMissing(col);
+        
+            Double vd = null;
+            if (!cbOperant.getSelectedItem().toString().contentEquals("contains")) {
+                try {
+                    vd = Double.parseDouble(vs);
+                } catch (NumberFormatException ne) {
+                }
             }
-            if (op.contentEquals("=")) {
-                con = new CsvConditionStringEqual(col, vs);
-            } else if (op.contentEquals(">=")) {
-                con = new CsvConditionStringGreaterEqual(col, vs);
-            } else if (op.contentEquals("<=")) {
-                con = new CsvConditionStringLessEqual(col, vs);
-            } else if (op.contentEquals(">")) {
-                con = new CsvConditionStringGreaterThen(col, vs);
-            } else if (op.contentEquals("<")) {
-                con = new CsvConditionStringLessThen(col, vs);
-            } else if (op.contentEquals("contains")) {
-                con = new CsvConditionStringContains(col, vs);
-            } else if (op.contentEquals("matches")) {
-                con = new CsvConditionStringMatches(col, vs);
+
+            if (vd != null) {
+                // we assume a numeric value
+                if (op == equals) {
+                    con = new CsvConditionDoubleEqual(col, vd);
+                } else if (op == ge) {
+                    con = new CsvConditionDoubleGreaterEqual(col, vd);
+                } else if (op == le) {
+                    con = new CsvConditionDoubleLessEqual(col, vd);
+                } if (op== gt) {
+                    con = new CsvConditionDoubleGreaterThen(col, vd);
+                } else if (op == lt) {
+                    con = new CsvConditionDoubleLessThen(col, vd);
+                }
+            } else {
+                if (vs.isEmpty()) {
+                    con = new CsvConditionMissing(col);
+                }
+                if (op.contentEquals(equals)) {
+                    con = new CsvConditionStringEqual(col, vs);
+                } else if (op.contentEquals(ge)) {
+                    con = new CsvConditionStringGreaterEqual(col, vs);
+                } else if (op.contentEquals(le)) {
+                    con = new CsvConditionStringLessEqual(col, vs);
+                } else if (op.contentEquals(gt)) {
+                    con = new CsvConditionStringGreaterThen(col, vs);
+                } else if (op.contentEquals(lt)) {
+                    con = new CsvConditionStringLessThen(col, vs);
+                } else if (op.contentEquals(contains)) {
+                    con = new CsvConditionStringContains(col, vs);
+                } else if (op.contentEquals(matches)) {
+                    con = new CsvConditionStringMatches(col, vs);
+                }
             }
         }
         if (ckNot.isSelected())
@@ -154,10 +252,12 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
+        jComboBox1 = new javax.swing.JComboBox<>();
         cbColumn = new javax.swing.JComboBox<>();
         cbOperant = new javax.swing.JComboBox<>();
-        cbValue = new javax.swing.JTextField();
+        txtValue = new javax.swing.JTextField();
         ckNot = new javax.swing.JCheckBox();
+        cbColumnCompare = new javax.swing.JComboBox<>();
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -170,13 +270,14 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
             .addGap(0, 100, Short.MAX_VALUE)
         );
 
+        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
         cbColumn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 cbColumnActionPerformed(evt);
             }
         });
 
-        cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "=", ">", ">=", "<", "<=", "contains", " " }));
         cbOperant.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 cbOperantActionPerformed(evt);
@@ -192,17 +293,20 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
             .addGroup(layout.createSequentialGroup()
                 .addComponent(ckNot)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(cbColumn, 0, 60, Short.MAX_VALUE)
+                .addComponent(cbColumn, 0, 58, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(cbOperant, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(cbValue, javax.swing.GroupLayout.DEFAULT_SIZE, 61, Short.MAX_VALUE))
+                .addGap(12, 12, 12)
+                .addComponent(cbColumnCompare, 0, 54, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(txtValue, javax.swing.GroupLayout.DEFAULT_SIZE, 60, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                 .addComponent(cbOperant, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(cbValue, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addComponent(txtValue, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(cbColumnCompare, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                 .addComponent(cbColumn, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addComponent(ckNot))
@@ -210,7 +314,15 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
     }// </editor-fold>//GEN-END:initComponents
 
     private void cbOperantActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbOperantActionPerformed
-        // TODO add your handling code here:
+        if (fieldCompares.contains(cbOperant.getSelectedItem())) {
+            cbColumnCompare.setVisible(true);
+            this.txtValue.setVisible(false);
+        } else {
+            cbColumnCompare.setVisible(false);
+            this.txtValue.setVisible(true);
+        }
+        
+        
     }//GEN-LAST:event_cbOperantActionPerformed
 
     private void cbColumnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbColumnActionPerformed
@@ -223,9 +335,11 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox<String> cbColumn;
+    private javax.swing.JComboBox<String> cbColumnCompare;
     private javax.swing.JComboBox<String> cbOperant;
-    private javax.swing.JTextField cbValue;
     private javax.swing.JCheckBox ckNot;
+    private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JTextField txtValue;
     // End of variables declaration//GEN-END:variables
 }
