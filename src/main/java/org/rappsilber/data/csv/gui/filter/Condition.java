@@ -5,11 +5,8 @@
  */
 package org.rappsilber.data.csv.gui.filter;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashSet;
-import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -50,6 +47,7 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
     String ge = ">=";
     String lt = "<";
     String le = "<=";
+    String regex ="regex";
     String contains ="contains";
     String matches ="regex";
     String equalsField = "= field";
@@ -180,18 +178,20 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
             return null;
         if (fieldCompares.contains(op)) {
             if (op == equalsField) {
-                    con = new CsvConditionEqualsField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionEqualsField(col, cbColumnCompare.getSelectedIndex());
             } else if (op == gtField) {
-                    con = new CsvConditionGreaterField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionGreaterField(col, cbColumnCompare.getSelectedIndex());
             } else if (op == geField) {
-                    con = new CsvConditionGreaterOrEqualsField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionGreaterOrEqualsField(col, cbColumnCompare.getSelectedIndex());
             } else if (op == ltField) {
-                    con = new CsvConditionLessField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionLessField(col, cbColumnCompare.getSelectedIndex());
             } else if (op == leField) {
-                    con = new CsvConditionLessOrEqualsField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionLessOrEqualsField(col, cbColumnCompare.getSelectedIndex());
             } else if (op == containsField) {
-                    con = new CsvConditionContainsField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionContainsField(col, cbColumnCompare.getSelectedIndex());
             }
+        } else if (op == regex) {
+            con = new CsvConditionStringMatches(col, vs);
         } else {
         
             Double vd = null;

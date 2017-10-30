@@ -11,6 +11,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import org.rappsilber.data.csv.condition.CsvCondition;
@@ -134,10 +135,36 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
     }
 
     public void setOr(){
-        cbOperant.setSelectedItem("OR");
+        if (!cbOperant.getSelectedItem().equals("OR")) {
+            for (int i = 0; i<cbOperant.getItemCount(); i++) {
+                if (cbOperant.getItemAt(i).equals("OR")) {
+                    final int id = i;
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            cbOperant.setSelectedIndex(id);
+                            cbOperant.setSelectedItem(cbOperant.getItemAt(id));
+                        }
+                    });
+                }
+            }
+        }
     }
     public void setAnd(){
-        cbOperant.setSelectedItem("AND");
+        if (!cbOperant.getSelectedItem().equals("AND")) {
+            for (int i = 0; i<cbOperant.getItemCount(); i++) {
+                if (cbOperant.getItemAt(i).equals("AND")) {
+                    final int id = i;
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            cbOperant.setSelectedIndex(id);
+                            cbOperant.setSelectedItem(cbOperant.getItemAt(id));
+                        }
+                    });
+                }
+            }
+        }
     }
     
     public int setColumns(String[] columns) {
