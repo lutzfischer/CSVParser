@@ -7,13 +7,20 @@ package org.rappsilber.data.csv.gui.filter;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import org.rappsilber.data.csv.CSVRandomAccess;
+import org.rappsilber.data.csv.CsvParser;
 import org.rappsilber.data.csv.condition.CsvCondition;
 import org.rappsilber.data.csv.condition.CsvConditionAnd;
 import org.rappsilber.data.csv.condition.CsvConditionNot;
@@ -28,6 +35,8 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
     ArrayList<Condition> conditions = new ArrayList<>();
     ArrayList<ConditionList> subLists = new ArrayList<>();
     String[] columns;
+    CsvParser csv;
+    
     ChangeListener elementChanged = new ChangeListener() {
         @Override
         public void stateChanged(ChangeEvent e) {
@@ -43,6 +52,8 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
                     }
                     if (c.isAND() || c.isOR() ) {
                         ConditionList cl = new ConditionList(columns);
+                        if (csv != null)
+                            cl.setCsvParser(csv);
                         cl.addChangeListener(this);
                         subLists.add(cl);
                         if (c.isAND())
@@ -56,6 +67,8 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
                 } else {
                     if (c == conditions.get(conditions.size()-1)) {
                         Condition nc = new Condition(columns);
+                        if (csv != null)
+                            nc.setCsvParser(csv);
                         nc.addChangeListener(this);
                         conditions.add(nc);
                         changed=true;
@@ -123,6 +136,12 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
         CsvCondition ret;
         for (int c =0 ; c<conditions.size()-1;c++)
             retl.add(conditions.get(c).getCondition());
+        for (int c =0 ; c<subLists.size();c++) {
+            CsvCondition con = subLists.get(c).getCondition();
+            if (con!= null)
+                retl.add(con);
+        }
+        
         if (cbOperant.getSelectedItem().equals("AND")) {
             ret = new CsvConditionAnd(retl.toArray(new CsvCondition[retl.size()]));
         } else {
@@ -180,6 +199,14 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
         return ret;
     }
     
+    public int setCsvParser(CsvParser csv) {
+        this.csv = csv;
+        int ret = setColumns(csv.getHeader());
+        for (CSVConditionProvider c: conditions) 
+            c.setCsvParser(csv);
+        return ret;
+    }
+    
     /**
      * Adds an <code>ActionListener</code> to the condition.
      * this will be triggered every time the column is changed
@@ -206,16 +233,37 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
             public void run() {
                 JFrame window = new JFrame();
                 window.setLayout(new BorderLayout());
-                ConditionList csv = new ConditionList();
-                csv.setColumns(new String[]{"One","Two","Three"});
+                final ConditionList csv = new ConditionList();
+                CSVRandomAccess parser = new CSVRandomAccess(',', '"');
+                parser.addColumn("ONE");
+                parser.addColumn("TWO");
+                parser.addColumn("THREE");
+                csv.setCsvParser(parser);
+
+                
                 window.setPreferredSize(csv.getPreferredSize());
                 window.add(csv, BorderLayout.CENTER);
+                JPanel pResult = new JPanel(new BorderLayout());
+                final JTextField txtResult = new JTextField();
+                pResult.add(txtResult, BorderLayout.CENTER);
+                JButton btnResult = new JButton("get");
+                pResult.add(btnResult, BorderLayout.EAST);
+                window.add(csv, BorderLayout.CENTER);
+                window.add(pResult, BorderLayout.SOUTH);
                 window.pack();
                 window.addWindowListener(new WindowAdapter() {
                   public void windowClosing(WindowEvent e) {
+                    System.out.println(csv.getCondition().toString());
                     System.exit(0);
                   }
                 });                
+                btnResult.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        txtResult.setText(csv.getCondition().toString());
+                    }
+                });
+                
                 window.setVisible(true);
             }
         });

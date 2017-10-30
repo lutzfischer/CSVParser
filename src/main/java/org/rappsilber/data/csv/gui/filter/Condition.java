@@ -10,6 +10,7 @@ import java.util.HashSet;
 import javax.swing.JButton;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import org.rappsilber.data.csv.CsvParser;
 import org.rappsilber.data.csv.condition.CsvCondition;
 import org.rappsilber.data.csv.condition.CsvConditionContainsField;
 import org.rappsilber.data.csv.condition.CsvConditionDoubleEqual;
@@ -57,6 +58,8 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
     String leField = "<= field";
     String containsField = "contains field";
     ArrayList<ChangeListener>  ChangeListeners = new ArrayList<>();
+    CsvParser csv;
+    
     /**
      * Creates new form AndCondition
      */
@@ -178,20 +181,20 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
             return null;
         if (fieldCompares.contains(op)) {
             if (op == equalsField) {
-                con = new CsvConditionEqualsField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionEqualsField(col, cbColumnCompare.getSelectedIndex(),csv);
             } else if (op == gtField) {
-                con = new CsvConditionGreaterField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionGreaterField(col, cbColumnCompare.getSelectedIndex(),csv);
             } else if (op == geField) {
-                con = new CsvConditionGreaterOrEqualsField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionGreaterOrEqualsField(col, cbColumnCompare.getSelectedIndex(),csv);
             } else if (op == ltField) {
-                con = new CsvConditionLessField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionLessField(col, cbColumnCompare.getSelectedIndex(),csv);
             } else if (op == leField) {
-                con = new CsvConditionLessOrEqualsField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionLessOrEqualsField(col, cbColumnCompare.getSelectedIndex(),csv);
             } else if (op == containsField) {
-                con = new CsvConditionContainsField(col, cbColumnCompare.getSelectedIndex());
+                con = new CsvConditionContainsField(col, cbColumnCompare.getSelectedIndex(),csv);
             }
         } else if (op == regex) {
-            con = new CsvConditionStringMatches(col, vs);
+            con = new CsvConditionStringMatches(col, vs,csv);
         } else {
         
             Double vd = null;
@@ -205,34 +208,37 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
             if (vd != null) {
                 // we assume a numeric value
                 if (op == equals) {
-                    con = new CsvConditionDoubleEqual(col, vd);
+                    con = new CsvConditionDoubleEqual(col, vd,csv);
                 } else if (op == ge) {
-                    con = new CsvConditionDoubleGreaterEqual(col, vd);
+                    con = new CsvConditionDoubleGreaterEqual(col, vd, csv);
                 } else if (op == le) {
-                    con = new CsvConditionDoubleLessEqual(col, vd);
+                    con = new CsvConditionDoubleLessEqual(col, vd, csv);
                 } if (op== gt) {
-                    con = new CsvConditionDoubleGreaterThen(col, vd);
+                    con = new CsvConditionDoubleGreaterThen(col, vd, csv);
                 } else if (op == lt) {
-                    con = new CsvConditionDoubleLessThen(col, vd);
+                    con = new CsvConditionDoubleLessThen(col, vd, csv);
                 }
             } else {
                 if (vs.isEmpty()) {
-                    con = new CsvConditionMissing(col);
+                    con = new CsvConditionMissing(col, csv);
                 }
                 if (op.contentEquals(equals)) {
-                    con = new CsvConditionStringEqual(col, vs);
+                    if (vs == null || vs.isEmpty()) {
+                        con = new CsvConditionMissing(col, csv);
+                    }   else
+                        con = new CsvConditionStringEqual(col, vs, csv);
                 } else if (op.contentEquals(ge)) {
-                    con = new CsvConditionStringGreaterEqual(col, vs);
+                    con = new CsvConditionStringGreaterEqual(col, vs, csv);
                 } else if (op.contentEquals(le)) {
-                    con = new CsvConditionStringLessEqual(col, vs);
+                    con = new CsvConditionStringLessEqual(col, vs, csv);
                 } else if (op.contentEquals(gt)) {
-                    con = new CsvConditionStringGreaterThen(col, vs);
+                    con = new CsvConditionStringGreaterThen(col, vs, csv);
                 } else if (op.contentEquals(lt)) {
-                    con = new CsvConditionStringLessThen(col, vs);
+                    con = new CsvConditionStringLessThen(col, vs, csv);
                 } else if (op.contentEquals(contains)) {
-                    con = new CsvConditionStringContains(col, vs);
+                    con = new CsvConditionStringContains(col, vs, csv);
                 } else if (op.contentEquals(matches)) {
-                    con = new CsvConditionStringMatches(col, vs);
+                    con = new CsvConditionStringMatches(col, vs, csv);
                 }
             }
         }
@@ -241,6 +247,13 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
         else
             return con;
     }
+
+    public int setCsvParser(CsvParser csv) {
+        this.csv = csv;
+        return setColumns(csv.getHeader());
+    }
+    
+
     
     /**
      * This method is called from within the constructor to initialize the form.
@@ -342,4 +355,6 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
     private javax.swing.JPanel jPanel1;
     private javax.swing.JTextField txtValue;
     // End of variables declaration//GEN-END:variables
+
+
 }

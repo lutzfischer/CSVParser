@@ -7,6 +7,7 @@ package org.rappsilber.data.csv.condition;
 
 import org.rappsilber.data.csv.CSVRandomAccess;
 import org.rappsilber.data.csv.CsvParser;
+import org.rappsilber.utils.RArrayUtils;
 
 /**
  *
@@ -68,5 +69,10 @@ public class CsvConditionAnd implements CsvCondition{
             conditions = dummy;
         }
     }
+    
+    public String toString() {
+        return "(" + RArrayUtils.toString(conditions, " AND ") + ")";
+    }
+        
     
 }

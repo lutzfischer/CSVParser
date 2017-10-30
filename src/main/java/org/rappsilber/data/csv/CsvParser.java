@@ -684,6 +684,8 @@ public class CsvParser {
             String[] dheader = java.util.Arrays.copyOf(m_header, col+1);
             dheader[col] = name;
             m_header = dheader;
+        } else {
+            m_header = new String[] {name};
         }
         getHeaderToColumn().put(name, col);
         if (!name.contentEquals(name.toLowerCase()) && getHeaderToColumn().get(name) == null)

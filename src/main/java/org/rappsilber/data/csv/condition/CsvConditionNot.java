@@ -47,4 +47,9 @@ public class CsvConditionNot implements CsvCondition{
     public void setInner(CsvCondition inner) {
         this.inner = inner;
     }
+    
+    public String toString() {
+        return "(NOT "+ inner.toString() +" )";
+    }      
+        
 }

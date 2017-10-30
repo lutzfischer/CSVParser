@@ -13,14 +13,24 @@ import org.rappsilber.data.csv.CsvParser;
  */
 public class CsvConditionMissing implements CsvCondition {
     int field;
+    String fieldName;
 
     /**
      * creates a new condition
      * @param field
      * @param value
      */
-    public CsvConditionMissing(int field) {
+    public CsvConditionMissing(int field1) {
+        this(field1, null);
+    }
+
+    public CsvConditionMissing(int field1, CsvParser parser) {
         this.field = field;
+        if (parser == null) {
+            fieldName = "[" +field +"]";
+        } else {
+            fieldName = parser.getHeader(field);
+        }
     }
 
     /**
@@ -42,6 +52,10 @@ public class CsvConditionMissing implements CsvCondition {
     public boolean fits(CsvParser csv) {
         return csv.isMissing(field);
     }
+
     
+    public String toString() {
+        return "([" + fieldName + "] is missing)";
+    }      
     
 }

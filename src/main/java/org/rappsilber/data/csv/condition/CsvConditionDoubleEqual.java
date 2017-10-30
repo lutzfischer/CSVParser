@@ -13,6 +13,7 @@ import org.rappsilber.data.csv.CsvParser;
  */
 public class CsvConditionDoubleEqual implements CsvCondition {
     int field;
+    String fieldName;
     double value;
 
     /**
@@ -21,10 +22,18 @@ public class CsvConditionDoubleEqual implements CsvCondition {
      * @param value
      */
     public CsvConditionDoubleEqual(int field, double value) {
-        this.field = field;
-        this.value = value;
+        this(field, value, null);
     }
 
+    public CsvConditionDoubleEqual(int field, double value, CsvParser parser) {
+        this.field = field;
+        this.value = value;
+        if (parser == null) {
+            fieldName = "[" +field +"]";
+        } else {
+            fieldName = parser.getHeader(field);
+        }
+    }
     /**
      * returns whether the given row fits the condition
      * @param row
@@ -44,6 +53,10 @@ public class CsvConditionDoubleEqual implements CsvCondition {
     public boolean fits(CsvParser csv) {
         return csv.getDouble(field) == value;
     }
-    
+
+
+    public String toString() {
+        return "([" + fieldName + "] = " + value + ")";
+    }    
     
 }

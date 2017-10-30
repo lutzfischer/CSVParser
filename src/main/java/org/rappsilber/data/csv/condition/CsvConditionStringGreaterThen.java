@@ -14,6 +14,7 @@ import org.rappsilber.data.csv.CsvParser;
 public class CsvConditionStringGreaterThen implements CsvCondition {
     int field;
     String value;
+    String fieldName;
 
     /**
      * creates a new condition
@@ -21,8 +22,17 @@ public class CsvConditionStringGreaterThen implements CsvCondition {
      * @param value
      */
     public CsvConditionStringGreaterThen(int field, String value) {
+        this(field, value, null);
+    }
+
+    public CsvConditionStringGreaterThen(int field, String value, CsvParser parser) {
         this.field = field;
         this.value = value;
+        if (parser == null) {
+            fieldName = "[" +field +"]";
+        } else {
+            fieldName = parser.getHeader(field);
+        }
     }
 
     /**
@@ -46,4 +56,7 @@ public class CsvConditionStringGreaterThen implements CsvCondition {
     }
     
     
+    public String toString() {
+        return "([" + fieldName + "] > \"" + value + "\")";
+    }        
 }

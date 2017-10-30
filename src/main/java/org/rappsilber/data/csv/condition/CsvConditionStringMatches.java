@@ -15,6 +15,7 @@ import org.rappsilber.data.csv.CsvParser;
 public class CsvConditionStringMatches implements CsvCondition {
     int field;
     Pattern value;
+    String fieldName;
 
     /**
      * creates a new condition
@@ -22,8 +23,17 @@ public class CsvConditionStringMatches implements CsvCondition {
      * @param value
      */
     public CsvConditionStringMatches(int field, String value) {
+        this(field, value, null);
+    }
+
+    public CsvConditionStringMatches(int field, String value, CsvParser parser) {
         this.field = field;
         this.value = Pattern.compile(value);
+        if (parser == null) {
+            fieldName = "[" +field +"]";
+        } else {
+            fieldName = parser.getHeader(field);
+        }
     }
 
     /**
@@ -45,6 +55,9 @@ public class CsvConditionStringMatches implements CsvCondition {
     public boolean fits(CsvParser csv) {
         return value.matcher(csv.getValue(field)).matches();
     }
-    
+
+    public String toString() {
+        return "([" + fieldName + "] ~ /" + value + "/)";
+    }       
     
 }

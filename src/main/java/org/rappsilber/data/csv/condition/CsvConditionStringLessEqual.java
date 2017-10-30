@@ -14,6 +14,7 @@ import org.rappsilber.data.csv.CsvParser;
 public class CsvConditionStringLessEqual implements CsvCondition {
     int field;
     String value;
+    String fieldName;
 
     /**
      * creates a new condition
@@ -21,10 +22,18 @@ public class CsvConditionStringLessEqual implements CsvCondition {
      * @param value
      */
     public CsvConditionStringLessEqual(int field, String value) {
-        this.field = field;
-        this.value = value;
+        this(field, value, null);
     }
 
+    public CsvConditionStringLessEqual(int field, String value, CsvParser parser) {
+        this.field = field;
+        this.value = value;
+        if (parser == null) {
+            fieldName = "[" +field +"]";
+        } else {
+            fieldName = parser.getHeader(field);
+        }
+    }
     /**
      * returns whether the given row fits the condition
      * @param row
@@ -44,6 +53,10 @@ public class CsvConditionStringLessEqual implements CsvCondition {
     public boolean fits(CsvParser csv) {
         return csv.getValue(field).compareTo(value)<=0;
     }
+
     
+    public String toString() {
+        return "([" + fieldName + "] <= \"" + value + "\")";
+    }        
     
 }

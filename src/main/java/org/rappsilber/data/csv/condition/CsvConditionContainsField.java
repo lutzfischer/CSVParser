@@ -13,7 +13,9 @@ import org.rappsilber.data.csv.CsvParser;
  */
 public class CsvConditionContainsField implements CsvCondition {
     int field1;
-    String field2;
+    int field2;
+    String fieldName1;
+    String fieldName2;
 
     /**
      * creates a new condition
@@ -21,10 +23,21 @@ public class CsvConditionContainsField implements CsvCondition {
      * @param value
      */
     public CsvConditionContainsField(int field1, int field2) {
-        this.field1 = this.field1;
-        this.field2 = this.field2;
+        this(field1, field2, null);
     }
 
+    public CsvConditionContainsField(int field1, int field2, CsvParser parser) {
+        this.field1 = field1;
+        this.field2 = field2;
+        if (parser == null) {
+            fieldName1 = "[" +field1 +"]";
+            fieldName2 = "[" +field2 +"]";
+        } else {
+            fieldName1 = parser.getHeader(field1);
+            fieldName2 = parser.getHeader(field2);;
+        }
+    }
+    
     /**
      * returns whether the given row fits the condition
      * @param row
@@ -45,5 +58,8 @@ public class CsvConditionContainsField implements CsvCondition {
         return csv.getValue(field1).contains(csv.getValue(field2));
     }
     
-    
+    public String toString() {
+        return "([" + fieldName1 + "] contains [" + fieldName2 + "])";
+    }
+            
 }
