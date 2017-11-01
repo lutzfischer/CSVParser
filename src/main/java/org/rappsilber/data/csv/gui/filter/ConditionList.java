@@ -253,7 +253,6 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
                 window.pack();
                 window.addWindowListener(new WindowAdapter() {
                   public void windowClosing(WindowEvent e) {
-                    System.out.println(csv.getCondition().toString());
                     System.exit(0);
                   }
                 });                

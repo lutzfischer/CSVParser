@@ -1113,7 +1113,7 @@ public class CsvParser {
     public String quoteValue(String value) {
         if (value == null)
             return MISSING_FIELD;
-        if (value.contains(getDelimiter()) || value.startsWith(getQuote())) {
+        if (value.contains(getDelimiter()) || value.contains("\n")  || value.contains("\r")  || value.startsWith(getQuote())) {
             return getQuote() + value.replace(getQuote(), getQuote() + getQuote()) + getQuote();
         }
         return value;
