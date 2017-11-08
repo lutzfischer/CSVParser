@@ -970,6 +970,89 @@ public class CSVRandomAccess extends CsvParser {
         notifySort();
     }
 
+    
+    /**
+     * sort the file numeric by the given column
+     * @param column 
+     */
+    public void sortNumericFirst(final int column) {
+        if (column > getMaxColumns())
+            return;
+        Comparator<String[]> comp = new Comparator<String[]>(){
+            
+            public int compare(String[] s1, String[] s2) {
+                if (s1.length <= column) {
+                    if (s2.length <= column)
+                        return 0;
+                    else
+                        return 1;
+                }
+                if (s2.length <= column)
+                    return -1;
+                
+                Matcher m1 = NUMERIC.matcher(s1[column]);
+                Matcher m2 = NUMERIC.matcher(s2[column]);
+                if (!m1.matches()) {
+                    if (!m2.matches())
+                        return s1[column].compareTo(s2[column]);
+                    else
+                        return 1;
+                }
+                if (!m2.matches())
+                    return -1;
+                double d1 = Double.parseDouble(m1.group(0));
+                double d2 = Double.parseDouble(m2.group(0));
+                    
+                return Double.compare(d1, d2);
+            }
+        };
+        synchronized(m_data) {
+            java.util.Collections.sort(m_data, comp);
+        }
+        notifySort();
+    }
+
+    /**
+     * sort the file numeric by the given column
+     * @param column 
+     */
+    public void sortNumericFirstReverse(final int column) {
+        if (column > getMaxColumns())
+            return;
+        Comparator<String[]> comp = new Comparator<String[]>(){
+            
+            public int compare(String[] s1, String[] s2) {
+                if (s1.length <= column) {
+                    if (s2.length <= column)
+                        return 0;
+                    else
+                        return 1;
+                }
+                if (s2.length <= column)
+                    return -1;
+                
+                Matcher m1 = NUMERIC.matcher(s1[column]);
+                Matcher m2 = NUMERIC.matcher(s2[column]);
+                if (!m1.matches()) {
+                    if (!m2.matches())
+                        return s2[column].compareTo(s1[column]);
+                    else
+                        return -1;
+                }
+                if (!m2.matches())
+                    return 1;
+                double d1 = Double.parseDouble(m1.group(0));
+                double d2 = Double.parseDouble(m2.group(0));
+                    
+                return Double.compare(d2, d1);
+            }
+        };
+        synchronized(m_data) {
+            java.util.Collections.sort(m_data, comp);
+        }
+        notifySort();
+    }
+    
     /**
      * sort the file numeric by the given column with the highest numbers first and the lowest last
      * @param column 

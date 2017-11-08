@@ -127,7 +127,7 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
         cbColumnCompare.setModel(new javax.swing.DefaultComboBoxModel<>(columns));
 
         // if we had some previous selection try to restore these
-        if (selectedColumn != null) {
+        if (selectedColumn != null && selectedColumn >0) {
             Integer newColumnName = null;
             for (int  i = 0; i < colDropDown.length; i++) {
                 if (colDropDown[i].contentEquals(selectedColumnName)) {

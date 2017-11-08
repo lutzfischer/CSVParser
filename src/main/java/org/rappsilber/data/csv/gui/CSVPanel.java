@@ -271,7 +271,7 @@ public class CSVPanel extends javax.swing.JPanel {
                     if (evt.getButton()==1)
                         m_csv.sortAlpha(column);
                     else
-                        m_csv.sortNumeric(column);
+                        m_csv.sortNumericFirst(column);
                     wasForward = true;
                     lastColumn = column;
                 } else {
@@ -279,13 +279,13 @@ public class CSVPanel extends javax.swing.JPanel {
                         if (evt.getButton()==1)
                             m_csv.sortAlphaReverse(column);
                         else
-                            m_csv.sortNumericReverse(column);
+                            m_csv.sortNumericFirstReverse(column);
                         wasForward = false;
                     } else {
                         if (evt.getButton()==1)
                             m_csv.sortAlpha(column);
                         else
-                            m_csv.sortNumeric(column);
+                            m_csv.sortNumericFirst(column);
                         wasForward = true;
                     }
 
