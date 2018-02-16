@@ -809,7 +809,7 @@ public class CsvParser {
      * @return 
      */
     public String getValue(int field) {
-        if (field > m_maxColumns)
+        if (field >= m_currentValues.length)
             return MISSING_FIELD;
         return m_currentValues[field];
     }

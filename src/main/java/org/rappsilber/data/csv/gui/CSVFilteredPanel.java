@@ -24,13 +24,16 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JTable;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 import org.rappsilber.data.csv.CSVRandomAccess;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import org.rappsilber.data.csv.LoadListener;
+import org.rappsilber.gui.components.memory.Memory;
 
 /**
  *
@@ -39,12 +42,17 @@ import org.rappsilber.data.csv.LoadListener;
 public class CSVFilteredPanel extends javax.swing.JPanel {
 
 
-
     private class CSVListTableModel extends AbstractTableModel implements LoadListener {
 
         int m_columcount = 0;
         int m_rowcount = 0;
         CSVFilteredPanel m_parent;
+        LoadListener complete = new LoadListener() {
+            @Override
+            public void listen(int row, int column) {
+                cornerLabel.setText("");
+            }
+        };
 
         public CSVListTableModel(CSVFilteredPanel p) {
             m_parent = p;
@@ -142,10 +150,13 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
 //                }
             } else if (column < 0) {
                 try {
+                    final long count =  getCSV().getRowCount();
+
                     SwingUtilities.invokeLater(new Runnable() {
 
                         public void run() {
                             fireTableDataChanged();
+                            cornerLabel.setText(""+count);
                         }
                     });
                 } catch (Error er) {
@@ -153,7 +164,9 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
                 }
             } else if (getCSV().getRowCount() != m_rowcount) {
                 final int last = getCSV().getRowCount() - 1;
-                final int first = m_rowcount - 1;
+                final int first = m_rowcount  - 1;
+                cornerLabel.setText(""+last);
+
                 try {
                     SwingUtilities.invokeLater(new Runnable() {
 
@@ -217,6 +230,8 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
         
     }
 
+    JLabel cornerLabel = new JLabel();
+    
     private CSVRandomAccess m_csv;
     private CSVRandomAccess m_csvUnfiltered;
     
@@ -260,6 +275,7 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
         fbCSVWrite.setDescription("TextTables(CSV,TSV)");
         fbCSVRead.setExtensions(extensions);
         fbCSVWrite.setExtensions(extensions);
+        spCSV.setCorner(ScrollPaneConstants.UPPER_LEADING_CORNER, cornerLabel);
         tblCSV.getTableHeader().addMouseListener(new ColumnHeaderClickHandler() {
 
             int lastColumn = -1;
@@ -295,7 +311,7 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
         });
         
         if (m_model != null) 
-            jScrollPane1.setRowHeaderView(new JTable(new RowNumberModel(m_model)));        
+            spCSV.setRowHeaderView(new JTable(new RowNumberModel(m_model)));        
         
         fbCSVRead.addActionListener(new ActionListener() {
 
@@ -363,6 +379,7 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
             m_csv.removeHeaderChangedListener(m_csvheaderChanged);
         }
         m_csv = csv;
+        cornerLabel.setText("Loading");
 
         if (m_csv!= null)
             m_csv.addHeaderChangedListener(m_csvheaderChanged);
@@ -394,12 +411,13 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
 //
 //            });
 //            rownumbers.getColumn(0).setWidth(100);
-            jScrollPane1.setRowHeaderView(rownumbers);
+            spCSV.setRowHeaderView(rownumbers);
         } else if (m_csv!= null) {
             m_csv.addListenerComplete(m_model);
+            m_csv.addListenerComplete(m_model.complete);
             m_csv.addListenerProgress(m_model);
             m_csv.addListenerColumnsChanged(m_model);
-            m_csv.addListenerSort(m_model);            
+            m_csv.addListenerSort(m_model);
         }
 
 
@@ -543,6 +561,7 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
                 CSVFilteredPanel csv = new CSVFilteredPanel();
                 window.setPreferredSize(csv.getPreferredSize());
                 window.add(csv, BorderLayout.CENTER);
+                window.add(new Memory(), BorderLayout.SOUTH);
                 window.pack();
                 window.addWindowListener(new WindowAdapter() {
                     @Override
@@ -673,7 +692,7 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
         btnLoad = new javax.swing.JButton();
         conditionList1 = new org.rappsilber.data.csv.gui.filter.ConditionList();
         btnApply = new javax.swing.JButton();
-        jScrollPane1 = new javax.swing.JScrollPane();
+        spCSV = new javax.swing.JScrollPane();
         tblCSV = new javax.swing.JTable();
         pSave = new javax.swing.JPanel();
         fbCSVWrite = new org.rappsilber.gui.components.FileBrowser();
@@ -747,9 +766,9 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
         ));
         tblCSV.setColumnSelectionAllowed(true);
         tblCSV.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-        jScrollPane1.setViewportView(tblCSV);
+        spCSV.setViewportView(tblCSV);
 
-        add(jScrollPane1, java.awt.BorderLayout.CENTER);
+        add(spCSV, java.awt.BorderLayout.CENTER);
 
         btnSave.setText("Save");
         btnSave.addActionListener(new java.awt.event.ActionListener() {
@@ -849,9 +868,9 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
     private org.rappsilber.gui.components.FileBrowser fbCSVRead;
     private org.rappsilber.gui.components.FileBrowser fbCSVWrite;
     private javax.swing.JButton jButton1;
-    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JPanel pLoad;
     private javax.swing.JPanel pSave;
+    private javax.swing.JScrollPane spCSV;
     private javax.swing.JTable tblCSV;
     // End of variables declaration//GEN-END:variables
 }
