@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -414,7 +415,7 @@ public class CSVRandomAccess extends CsvParser {
       
         UpdatableChar delimiter = new UpdatableChar();
         UpdatableChar quote = new UpdatableChar();
-        Boolean unique = guessDelimQuote(f, guessLines, delimiters, quotes, delimiter, quote);
+        Boolean unique = guessDelimQuote(f, guessLines, delimiters, quotes, delimiter, quote,new ArrayList<String>());
                 
         
         if (unique == null) {
@@ -443,7 +444,7 @@ public class CSVRandomAccess extends CsvParser {
       
         UpdatableChar delimiter = new UpdatableChar();
         UpdatableChar quote = new UpdatableChar();
-        Boolean unique = guessDelimQuote(f, guessLines, delimiters, quotes, delimiter, quote);
+        Boolean unique = guessDelimQuote(f, guessLines, delimiters, quotes, delimiter, quote, new ArrayList<String>());
                 
         
         if (unique == null) {
@@ -583,7 +584,11 @@ public class CSVRandomAccess extends CsvParser {
                 for (int i = 0; i<field; i++) {
                     line[i] = MISSING_FIELD;
                 }
-                line[field] = value.toString();
+                if (value instanceof Number) {
+                    line[field] = numberformat.format((Number)((Number) value).doubleValue());
+                } else {
+                    line[field] = value.toString();
+                }
                 m_data.add(line);
                 if (field >= getMaxColumns())
                     setMaxColumns(field + 1);
@@ -655,8 +660,8 @@ public class CSVRandomAccess extends CsvParser {
         if (v == MISSING_FIELD)
             return Double.NaN;
         try {
-            return Double.parseDouble(v);
-        } catch (NumberFormatException nfe) {
+            return numberformat.parse(v).doubleValue();
+        } catch (NumberFormatException|ParseException nfe) {
             return Double.NaN;
         }
     }
@@ -675,7 +680,7 @@ public class CSVRandomAccess extends CsvParser {
             return false;
         
         //ISFALSE.split(v);
-        return ! ISFALSE.matcher(v).matches();
+        return TrueFalse.parseBoolean(v);
     }
     
     /**
@@ -716,10 +721,10 @@ public class CSVRandomAccess extends CsvParser {
         if (v == MISSING_FIELD)
             return defaultValue;
         
-        if (defaultValue)
-            return !ISFALSE.matcher(v).matches();
-        else
-            return ISTRUE.matcher(v).matches();
+        Boolean b= TrueFalse.parseBoolean(v);
+        if (b==null)
+            return defaultValue;
+        return b;
     }
 
     

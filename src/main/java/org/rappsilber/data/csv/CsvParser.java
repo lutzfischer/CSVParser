@@ -25,13 +25,17 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.rappsilber.utils.BooleanConvert;
 import org.rappsilber.utils.UpdatableChar;
 import org.rappsilber.utils.UpdateableInteger;
 
@@ -73,13 +77,21 @@ public class CsvParser {
     /** the file that is read - if a file is read **/
     private File                        m_inputFile;
     /** if we should guess the delimiter - what are the candidates**/
-    protected static char[]             TEST_DELIMITERS = {',','\t','|'};
+    protected static char[]             TEST_DELIMITERS = {',','\t','|',';',' '};
     /** if we should guess the quote chars - what are the candidates**/
     protected static char[]             TEST_QUOTES = {'\'','"'};
-    /** a pattern defining the values, that would interpreted as true */
-    public final static Pattern      ISTRUE = Pattern.compile("^(T|1(\\.0*)?|-1(\\.0*)?|TRUE|Y|YES|\\+)$",Pattern.CASE_INSENSITIVE);
-    /** a pattern defining the values, that would interpreted as false */
-    public final static Pattern      ISFALSE = Pattern.compile("^(F|0(\\.0*)?|FALSE|N|NO|\\-)?$",Pattern.CASE_INSENSITIVE);
+//    /** a pattern defining the values, that would interpreted as true */
+//    public final static Pattern      ISTRUE = Pattern.compile("^(T|1(\\.0*)?|-1(\\.0*)?|TRUE|Y|YES|\\+)$",Pattern.CASE_INSENSITIVE);
+//    /** a pattern defining the values, that would interpreted as false */
+//    public final static Pattern      ISFALSE = Pattern.compile("^(F|0(\\.0*)?|FALSE|N|NO|\\-)?$",Pattern.CASE_INSENSITIVE);
+    /** the locale used for reading and writing numbers*/
+    protected Locale                   numberlocale;
+    /** the locale used for reading and writing numbers*/
+    protected NumberFormat             numberformat;
+    
+    protected BooleanConvert           TrueFalse;
+    
+    
     
     
     
@@ -94,6 +106,7 @@ public class CsvParser {
      */
     public CsvParser() {
         setPattern(m_delimiter, m_quote);
+        setLocale(Locale.getDefault());
     }
 
     /** 
@@ -102,6 +115,7 @@ public class CsvParser {
      */
     public CsvParser(char delimiter) {
         setPattern(Character.toString(delimiter), m_quote);
+        setLocale(Locale.getDefault());
     }
     
     /** 
@@ -112,6 +126,14 @@ public class CsvParser {
     public CsvParser(char delimiter, char quote) {
         setDelimiter(delimiter);
         setQuote(quote);
+        setLocale(Locale.getDefault());
+    }
+    
+    public void setLocale(Locale l) {
+        this.numberlocale = l;
+        numberformat = NumberFormat.getInstance(numberlocale);
+        TrueFalse = new BooleanConvert(numberlocale);
+        numberformat.setMaximumFractionDigits(10);
     }
     
     /**
@@ -425,6 +447,20 @@ public class CsvParser {
             readHeader();
     }
     
+    /**
+     * opens the file
+     * @param f the file to be opened
+     * @param hasHeader should the first row be interpreted as header
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    public void openFile(BufferedReader f, boolean hasHeader, String[] guessedLines) throws FileNotFoundException, IOException {
+//        m_inputFile = f;
+        m_input = f;
+        if (hasHeader)
+            readHeader();
+    }    
+    
     public void openURI(URI f, boolean hasHeader) throws FileNotFoundException, IOException {
         if (f.getScheme().equals("file")) {
             openFile(new File(f), hasHeader);
@@ -501,7 +537,8 @@ public class CsvParser {
       
         UpdatableChar delimiter = new UpdatableChar();
         UpdatableChar quote = new UpdatableChar();
-        Boolean unique = guessDelimQuote(f, guessLines, delimiters, quotes, delimiter, quote);
+        ArrayList guessedLines = new ArrayList(guessLines);
+        Boolean unique = guessDelimQuote(f, guessLines, delimiters, quotes, delimiter, quote, new ArrayList<String>());
                 
         
         if (unique == null) {
@@ -524,7 +561,7 @@ public class CsvParser {
      * @throws IOException 
      */
     public static Boolean guessDelimQuote(File f, int guessLines, UpdatableChar delimiter, UpdatableChar quote) throws FileNotFoundException, IOException {
-        return guessDelimQuote(f, guessLines, TEST_DELIMITERS, TEST_QUOTES, delimiter, quote);
+        return guessDelimQuote(f, guessLines, TEST_DELIMITERS, TEST_QUOTES, delimiter, quote, new ArrayList<String>());
     }
     
     /**
@@ -543,8 +580,8 @@ public class CsvParser {
      * @throws FileNotFoundException
      * @throws IOException 
      */
-    public static Boolean guessDelimQuote(File f, int guessLines, char[] delimiters, char[] quotes, UpdatableChar delimiter, UpdatableChar quote) throws FileNotFoundException, IOException {
-        ArrayList<String> allTestLines = new ArrayList<String>(guessLines);
+    public static Boolean guessDelimQuote(File f, int guessLines, char[] delimiters, char[] quotes, UpdatableChar delimiter, UpdatableChar quote, ArrayList<String>  guessedLines) throws FileNotFoundException, IOException {
+        ArrayList<String> allTestLines = guessedLines;
         int lc = 0;
         String line;
         BufferedReader br = new BufferedReader(new FileReader(f));
@@ -783,7 +820,7 @@ public class CsvParser {
      */
     public Integer getColumn(String name)  {
         Integer col = getHeaderToColumn().get(name);
-        if (col == null && name.matches("[0-9]*")) {
+        if (col == null && name.matches("[0-9]+")) {
             Integer name2col = Integer.parseInt(name);
             if (name2col < getMaxColumns())
                 return name2col;
@@ -869,8 +906,11 @@ public class CsvParser {
         String v = getValue(field);
         if (v == MISSING_FIELD)
             return null;
-        
-        return (int)Double.parseDouble(v);
+        try {
+            return numberformat.parse(v).intValue();
+        } catch (ParseException ex) {
+            throw new NumberFormatException(ex.getLocalizedMessage());
+        }
     }
     
     /**
@@ -886,7 +926,11 @@ public class CsvParser {
         if (v == MISSING_FIELD)
             return defaultValue;
         
-        return (int)Double.parseDouble(v);
+        try {
+            return numberformat.parse(v).intValue();
+        } catch (ParseException ex) {
+            throw new NumberFormatException(ex.getLocalizedMessage());
+        }
     }
     
     /**
@@ -900,8 +944,8 @@ public class CsvParser {
         if (getValue(field) == MISSING_FIELD)
             return Double.NaN;
         try {
-            return Double.parseDouble(m_currentValues[field]);
-        } catch (NumberFormatException nfe) {
+            return numberformat.parse(m_currentValues[field]).doubleValue();
+        } catch (NumberFormatException|ParseException fe) {
             return Double.NaN;
         }
     }
@@ -918,8 +962,8 @@ public class CsvParser {
         if (getValue(field) == MISSING_FIELD)
             return (Double)defaultValue;
         try {
-            return Double.parseDouble(m_currentValues[field]);
-        } catch (NumberFormatException nfe) {
+            return numberformat.parse(m_currentValues[field]).doubleValue();
+        } catch (NumberFormatException|ParseException fe) {
             return (Double)defaultValue;
         }
     }
@@ -934,8 +978,7 @@ public class CsvParser {
         String v = getValue(field);
         if (v == MISSING_FIELD)
             return null;
-        
-        return ! ISFALSE.matcher(v).matches();
+        return ! TrueFalse.parseBoolean(v);
     }
 
    /**
@@ -952,11 +995,11 @@ public class CsvParser {
         String v = getValue(field);
         if (v == MISSING_FIELD)
             return defaultValue;
-        
-        if (defaultValue)
-            return !ISFALSE.matcher(v).matches();
-        else
-            return ISTRUE.matcher(v).matches();
+
+        Boolean b= TrueFalse.parseBoolean(v);
+        if (b==null)
+            return defaultValue;
+        return b;
     }
 
 
