@@ -17,6 +17,7 @@ package org.rappsilber.data.csv;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -35,6 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
 import org.rappsilber.utils.BooleanConvert;
 import org.rappsilber.utils.UpdatableChar;
 import org.rappsilber.utils.UpdateableInteger;
@@ -71,7 +73,7 @@ public class CsvParser {
     /** how many values where found in the current line **/
     private int                         m_foundValues=0;
     /** the number of the current line **/
-    private int                         m_lineNumber=0;
+    protected int                         m_lineNumber=0;
     /** the reader for the file - if it reads from a file*/
     private BufferedReader              m_input;
     /** the file that is read - if a file is read **/
@@ -442,7 +444,13 @@ public class CsvParser {
      */
     public void openFile(File f, boolean hasHeader) throws FileNotFoundException, IOException {
         m_inputFile = f;
-        m_input = new BufferedReader(new FileReader(f));
+        
+        try {
+            GZIPInputStream gzi = new GZIPInputStream(new FileInputStream(f));
+            m_input = new BufferedReader(new InputStreamReader(gzi));
+        } catch (Exception e){
+            m_input = new BufferedReader(new FileReader(f));
+        }
         if (hasHeader)
             readHeader();
     }
@@ -1192,5 +1200,13 @@ public class CsvParser {
      */
     public HashMap<String,Integer> getHeaderToColumn() {
         return m_headerToColumn;
+    }
+
+    /**
+     * the number of the current line
+     * @return the m_lineNumber
+     */
+    public int getRow() {
+        return m_lineNumber;
     }
 }

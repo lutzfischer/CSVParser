@@ -205,14 +205,16 @@ public class CSVRandomAccess extends CsvParser {
             @Override
             public void run() {
                 try {
-                    synchronized(m_data) {
-                        int row = 0;
-                        while (CSVRandomAccess.super.next()) {
-                            if (row++ % 10 == 0) {
-                                notifyProgress(row);
-                            }
+                    int row = 0;
+                    while (CSVRandomAccess.super.next()) {
+                        if (row++ % 10 == 0) {
+                            notifyProgress(row);
+                        }
+                        synchronized(m_data) {
                             m_data.add(CSVRandomAccess.super.getValues());
                         }
+                    }
+                    synchronized(m_data) {
                         m_loading = false;
                     }
         //        m_loading.notifyAll();
@@ -233,12 +235,39 @@ public class CSVRandomAccess extends CsvParser {
      */
     @Override
     public boolean next() {
-        if (m_current<m_data.size() -1) {
-            m_current ++;
-            setCurrentValues(m_data.get(m_current));
-            return true;
+        boolean loading = false;
+        synchronized(m_data) {
+            if (m_current<m_data.size() -1) {
+                m_current ++;
+                setCurrentValues(m_data.get(m_current));
+                return true;
+            } else {
+                loading = m_loading;
+
+            }
         }
-        m_current = m_data.size();
+        if (loading) {
+            final Object oSync = new Object();
+            LoadListener l = new LoadListener() {
+                @Override
+                public void listen(int row, int column) {
+                    synchronized(oSync) {
+                        oSync.notify();
+                    }
+                }
+            };
+            this.addListenerProgress(l);
+            this.addListenerComplete(l);
+            try {
+                synchronized(oSync) {
+                    oSync.wait();
+                }
+            } catch (InterruptedException ex) {
+            }
+            this.removeListenerProgress(l);
+            this.removeListenerComplete(l);
+            return next();
+        }
         return false;
     }
     
@@ -872,10 +901,12 @@ public class CSVRandomAccess extends CsvParser {
      * @param listener 
      */
     public void addListenerComplete(LoadListener listener) {
-        if (!m_listenerCompleted.contains(listener))
-            m_listenerCompleted.add(listener);
-        else
-            System.out.println("some error here");
+        synchronized(m_listenerCompleted) {
+            if (!m_listenerCompleted.contains(listener))
+                m_listenerCompleted.add(listener);
+            else
+                System.out.println("some error here");
+        }
     }
     
     /**
@@ -883,7 +914,9 @@ public class CSVRandomAccess extends CsvParser {
      * @param listener 
      */
     public void addListenerProgress(LoadListener listener) {
-        m_listenerProgress.add(listener);
+        synchronized(m_listenerProgress) {
+            m_listenerProgress.add(listener);
+        }
     }
 
     /**
@@ -891,7 +924,9 @@ public class CSVRandomAccess extends CsvParser {
      * @param listener 
      */
     public void removeListenerComplete(LoadListener listener) {
-        m_listenerCompleted.remove(listener);
+        synchronized(m_listenerCompleted) {
+            m_listenerCompleted.remove(listener);
+        }
     }
 
     /**
@@ -899,7 +934,9 @@ public class CSVRandomAccess extends CsvParser {
      * @param listener 
      */
     public void removeListenerProgress(LoadListener listener) {
-        m_listenerProgress.remove(listener);
+        synchronized(m_listenerProgress) {
+            m_listenerProgress.remove(listener);
+        }
     }
 
     /**
@@ -907,7 +944,9 @@ public class CSVRandomAccess extends CsvParser {
      * @param listener 
      */
     public void addListenerSort(LoadListener listener) {
-        m_listenerSort.add(listener);
+        synchronized(m_listenerSort) {
+            m_listenerSort.add(listener);
+        }
     }
 
     /**
@@ -915,7 +954,9 @@ public class CSVRandomAccess extends CsvParser {
      * @param listener 
      */
     public void addListenerColumnsChanged(LoadListener listener) {
-        m_listenerColumnsChanged.add(listener);
+        synchronized(m_listenerColumnsChanged) {
+            m_listenerColumnsChanged.add(listener);
+        }
     }
 
     /**
@@ -923,7 +964,9 @@ public class CSVRandomAccess extends CsvParser {
      * @param listener 
      */
     public void removeListenerSort(LoadListener listener) {
-        m_listenerSort.remove(listener);
+        synchronized(m_listenerSort) {
+            m_listenerSort.remove(listener);
+        }
     }
 
     /**
@@ -931,7 +974,9 @@ public class CSVRandomAccess extends CsvParser {
      * @param listener 
      */
     public void removeListenerColumnsChanged(LoadListener listener) {
-        m_listenerColumnsChanged.remove(listener);
+        synchronized(m_listenerColumnsChanged) {
+            m_listenerColumnsChanged.remove(listener);
+        }
     }
 
     /**
@@ -1212,9 +1257,10 @@ public class CSVRandomAccess extends CsvParser {
      * @param rows 
      */
     protected synchronized void  notifyProgress(int rows) {
-        
-        for (LoadListener l : (ArrayList<LoadListener>) m_listenerProgress.clone()) {
-            l.listen(rows,-1);
+        synchronized(m_listenerProgress) {
+            for (LoadListener l : (ArrayList<LoadListener>) m_listenerProgress.clone()) {
+                l.listen(rows,-1);
+            }
         }
     }
     
@@ -1222,8 +1268,10 @@ public class CSVRandomAccess extends CsvParser {
      * notify listeners that all data where read.
      */
     protected synchronized void notifyComplete() {
-        for (LoadListener l : (ArrayList<LoadListener>)m_listenerCompleted.clone()) {
-            l.listen(m_data.size(),getMaxColumns());
+        synchronized(m_listenerCompleted) {
+            for (LoadListener l : (ArrayList<LoadListener>)m_listenerCompleted.clone()) {
+                l.listen(m_data.size(),getMaxColumns());
+            }
         }
     }
 
@@ -1231,8 +1279,10 @@ public class CSVRandomAccess extends CsvParser {
      * notify listeners that one or more columns have changed
      */
     protected synchronized void notifyColumnsChanged() {
-        for (LoadListener l : (ArrayList<LoadListener>)m_listenerColumnsChanged.clone()) {
-            l.listen(m_data.size(),getMaxColumns());
+        synchronized(m_listenerColumnsChanged) {
+            for (LoadListener l : (ArrayList<LoadListener>)m_listenerColumnsChanged.clone()) {
+                l.listen(m_data.size(),getMaxColumns());
+            }
         }
     }
     
@@ -1366,5 +1416,19 @@ public class CSVRandomAccess extends CsvParser {
         return m_data.get(r);
     }
 
+    /**
+     * the number of the current line
+     * @return the m_lineNumber
+     */
+    public int getRow() {
+        return m_current;
+    }
+
+    /**
+     * @return the m_data
+     */
+    protected ArrayList<String[]> getData() {
+        return m_data;
+    }
     
 }
