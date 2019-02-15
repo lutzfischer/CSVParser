@@ -45,7 +45,6 @@ public class CSVRandomAccess extends CsvParser {
     private final static Pattern NUMERIC = Pattern.compile("[^0-9]*([\\+\\-]?(?:[0-9]+\\.?[0-9]*|\\.[0-9]+)(?:\\s?E[\\+\\s]?[0-9]+)?).*");    
     
     
-    
 
 
     
@@ -123,62 +122,47 @@ public class CSVRandomAccess extends CsvParser {
      * Read in a file as CSV-file
      * @param f the file to be read
      * @param hasHeader is the first row in the file to be treated as header (true) or first data row (false)
+     * @param async if true returns after initially opening the file and continuous to read in the file in a background thread
      * @throws FileNotFoundException
      * @throws IOException 
      */
-    public void openFile(File f, boolean hasHeader) throws FileNotFoundException, IOException {
-        super.openFile(f,false);
+    public void openFile(File f, final boolean hasHeader, final boolean async) throws FileNotFoundException, IOException {
+        super.openFile(f, false);
+        final CsvParser source = new CsvParser();
+        this.transfer(source);
+        source.openFile(f,false);
         m_loading = true;
-        int row = 0;
-        synchronized(m_data) {
-            if (hasHeader && super.next()) {
-                m_current = 0;
-                m_data.add(super.getValues());
-                setCurrentLineAsHeader();
-                notifyProgress(row);
-            }
-            while (super.next()) {
-                if (row++ % 10 == 0)
-                    notifyProgress(row);
-                m_data.add(super.getValues());
-            }
-            m_loading = false;
-        }
-//        m_loading.notifyAll();
-        notifyComplete();
+        if (async) {
+            Runnable runnable = new Runnable() {
+
+                @Override
+                public void run() {
+                    try {
+                        loadData(hasHeader, source);
+                    } catch (IOException ex) {
+                        Logger.getLogger(CSVRandomAccess.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            };
+            Thread t = new Thread(runnable);
+            t.setName("CSV Read" + f.getName() + " " + t.getId());
+            t.setDaemon(true);
+            t.start();
+        } else 
+            loadData(hasHeader, source);
+    }
+    
+    /**
+     * Read in a file as CSV-file
+     * @param f the file to be read
+     * @param hasHeader is the first row in the file to be treated as header (true) or first data row (false)
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    public void openFile(File f, final boolean hasHeader) throws FileNotFoundException, IOException {
+        openFile(f, hasHeader, false);
     }
 
-    
-    public void openURI(URI f, boolean hasHeader) throws FileNotFoundException, IOException {
-        if (f.getScheme().equals("file")) {
-            openFile(new File(f), hasHeader);
-        } else {
-            super.openURI(f, false);
-            m_loading = true;
-            int row = 0;
-            synchronized(m_data) {
-                if (hasHeader && super.next()) {
-                    m_current = 0;
-                    m_data.add(super.getValues());
-                    setCurrentLineAsHeader();
-                    notifyProgress(row);
-                }
-                while (super.next()) {
-                    if (row++ % 10 == 0)
-                        notifyProgress(row);
-                    m_data.add(super.getValues());
-                }
-                m_loading = false;
-            }
-    //        m_loading.notifyAll();
-            notifyComplete();            
-        }
-    }
-    
-    public void openURI(URI f) throws FileNotFoundException, IOException {
-        openURI(f, false);
-    }
-    
     /**
      * Read in a file as CSV-file - this function returns as soon as the file is open - and if  hasHeader is true - the header-row was read in.
      * <br/> To be notified when the file is completely read in the {@link #addListenerComplete(org.rappsilber.data.csv.CSVRandomAccess.LoadListener) addListenerComplete} can be used.
@@ -188,46 +172,67 @@ public class CSVRandomAccess extends CsvParser {
      * @throws FileNotFoundException
      * @throws IOException 
      */
-    public void openFileAsync(File f, boolean hasHeader) throws FileNotFoundException, IOException {
-        super.openFile(f,false);
-        m_loading = true;
-        
-        // read the first line as header if requested and a line is there
-        if (hasHeader && super.next()) {
-            m_current = 0;
-            m_data.add(super.getValues());
-            setCurrentLineAsHeader();
-            notifyProgress(0);
-        }
-        
-        Runnable runnable = new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    int row = 0;
-                    while (CSVRandomAccess.super.next()) {
-                        if (row++ % 10 == 0) {
-                            notifyProgress(row);
-                        }
-                        synchronized(m_data) {
-                            m_data.add(CSVRandomAccess.super.getValues());
-                        }
-                    }
-                    synchronized(m_data) {
-                        m_loading = false;
-                    }
-        //        m_loading.notifyAll();
-                    notifyComplete();
-
-                } catch (IOException ex) {
-                    Logger.getLogger(CSVRandomAccess.class.getName()).log(Level.SEVERE, null, ex);
-                    notifyComplete();
-                }
-            }
-        };
-        new Thread(runnable).start();
+    public void openFileAsync(File f, final boolean hasHeader) throws FileNotFoundException, IOException {
+        openFile(f, hasHeader, true);
     }
+    
+    public void loadData(boolean setHeader, CsvParser source) throws IOException {
+        int row = 0;
+        if (setHeader && source.next()) {
+            setHeader(source.getValues());
+        }
+        while (source.next()) {
+            synchronized(m_data) {
+                m_data.add(source.getValues());
+            }
+            if (row % 10 == 0)
+                notifyProgress(row);
+            row++;
+        }
+        m_loading = false;
+        notifyComplete();
+    }
+
+    
+    public void openURI(URI f, final boolean hasHeader, boolean asyn) throws FileNotFoundException, IOException {
+        super.openURI(f, false);
+        if (f.getScheme().equals("file")) {
+            openFile(new File(f), hasHeader);
+        } else {
+            final CsvParser source = new CsvParser();
+            this.transfer(source);
+            source.openURI(f,false);
+            m_loading = true;
+            if (asyn) {
+                Runnable runnable = new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                            loadData(hasHeader, source);
+                        } catch (IOException ex) {
+                            Logger.getLogger(CSVRandomAccess.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                };
+                Thread t = new Thread(runnable);
+                t.setName("CSV Read from URI " + t.getId());
+                t.setDaemon(true);
+                t.start();
+            } else {
+                loadData(hasHeader, source);
+            }
+        }
+    }
+    
+    public void openURI(URI f, boolean hasHeader) throws FileNotFoundException, IOException {
+        openURI(f, hasHeader,false);
+    }
+    
+    public void openURI(URI f) throws FileNotFoundException, IOException {
+        openURI(f, false);
+    }
+    
     
     /**
      * move the active-row-pointer to the next row.
@@ -907,6 +912,10 @@ public class CSVRandomAccess extends CsvParser {
             else
                 System.out.println("some error here");
         }
+        if (!m_loading && m_data.size()>0) {
+            listener.listen(m_data.size()-1, getMaxColumns());
+        }
+            
     }
     
     /**

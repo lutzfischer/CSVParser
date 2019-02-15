@@ -393,11 +393,13 @@ public class CsvParser {
     public void setCurrentLine(String line) {
         m_lineNumber++;
         m_currentLine = line;
-        m_currentValues = splitLine(line).toArray(new String[0]);
-        for (int c = 0; c<m_currentValues.length;c++)
-            if (m_currentValues[c] == null)
-                m_currentValues[c] = MISSING_FIELD;
-        int l = m_currentValues.length;
+        
+        String[] currentValues = splitLine(line).toArray(new String[0]);
+        for (int c = 0; c<currentValues.length;c++)
+            if (currentValues[c] == null)
+                currentValues[c] = MISSING_FIELD;
+        int l = currentValues.length;
+        setCurrentValues(currentValues);
         if (l > m_maxColumns || m_maxColumns == 0) {
             if (m_maxColumns != 0) {
                 Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "line " + 
@@ -591,7 +593,7 @@ public class CsvParser {
     public static Boolean guessDelimQuote(File f, int guessLines, char[] delimiters, char[] quotes, UpdatableChar delimiter, UpdatableChar quote, ArrayList<String>  guessedLines) throws FileNotFoundException, IOException {
         ArrayList<String> allTestLines = guessedLines;
         int lc = 0;
-        String line;
+        String line;        
         BufferedReader br = new BufferedReader(new FileReader(f));
         
         while ((line = br.readLine()) != null && lc++<guessLines) {
@@ -703,8 +705,9 @@ public class CsvParser {
      * @return 
      */
     public boolean onlyEmptyFields() {
+        String[] values = getValues();
         for (int i = 0; i< m_foundValues; i++) {
-            if (!m_currentValues[i].isEmpty())
+            if (!values[i].isEmpty())
                 return false;
         }
         return true;
@@ -1110,12 +1113,20 @@ public class CsvParser {
         csv.m_cellValue = m_cellValue;
         csv.m_countHeader = m_countHeader;
         csv.m_currentLine = m_currentLine;
-        csv.m_currentValues = m_currentValues.clone();
+        if (m_currentValues != null) {
+            csv.m_currentValues = m_currentValues.clone();
+        } else {
+            csv.m_currentValues = null;
+        }
         csv.m_delimiter = m_delimiter;
         csv.m_doublequote  = m_doublequote;
         csv.m_foundValues = m_foundValues;
         csv.m_header  = m_header;
-        csv.m_headerAlternatives  =   (ArrayList<HashSet<String>>) getHeaderAlternatives().clone();
+        if (m_headerAlternatives  == null) {
+            csv.m_headerAlternatives = null;
+        } else {
+            csv.m_headerAlternatives  =   (ArrayList<HashSet<String>>) getHeaderAlternatives().clone();
+        }
         csv.m_headerToColumn = (HashMap<String,Integer>)getHeaderToColumn().clone();
         csv.m_input = m_input;
         csv.m_inputFile = getInputFile();
