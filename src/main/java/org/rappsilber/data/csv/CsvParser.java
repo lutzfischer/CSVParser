@@ -1172,9 +1172,10 @@ public class CsvParser {
      * @param value
      * @return 
      */
-    public String quoteValue(String value) {
-        if (value == null)
+    public String quoteValue(Object ovalue) {
+        if (ovalue == null)
             return MISSING_FIELD;
+        String value = ovalue.toString();
         if (value.contains(getDelimiter()) || value.contains("\n")  || value.contains("\r")  || value.startsWith(getQuote())) {
             return getQuote() + value.replace(getQuote(), getQuote() + getQuote()) + getQuote();
         }

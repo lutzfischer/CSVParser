@@ -19,8 +19,8 @@ public class CSVSortAlphaNumeric extends CSVSort {
     }
 
     @Override
-    public int compare(String[] row1, String[] row2) {
-        return row1[field].compareTo(row2[field]);
+    public int compare(Object[] row1, Object[] row2) {
+        return row1[field].toString().compareTo(row2[field].toString());
     }
     
 }

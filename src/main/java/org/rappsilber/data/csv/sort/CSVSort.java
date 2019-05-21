@@ -19,6 +19,6 @@ public abstract class CSVSort {
         this.field = field;
     }
 
-    public abstract int compare(String[] row1, String[] row2);
+    public abstract int compare(Object[] row1, Object[] row2);
     
 }

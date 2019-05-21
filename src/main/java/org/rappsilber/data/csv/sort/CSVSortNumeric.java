@@ -18,16 +18,16 @@ public class CSVSortNumeric extends CSVSort {
         super(field);
     }
 
-    public int compare(String[] row1, String[] row2) {
+    public int compare(Object[] row1, Object[] row2) {
         Double d1;
         Double d2;
         try {
-            d1 = Double.parseDouble(row1[field]);
+            d1 = Double.parseDouble(row1[field].toString());
         } catch (Exception nfe) {
             d1 = Double.NEGATIVE_INFINITY;
         }
         try {
-            d2 = Double.parseDouble(row2[field]);
+            d2 = Double.parseDouble(row2[field].toString());
         } catch (Exception nfe) {
             d2 = Double.NEGATIVE_INFINITY;
         }

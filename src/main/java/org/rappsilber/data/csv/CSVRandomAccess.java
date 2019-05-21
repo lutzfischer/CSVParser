@@ -31,6 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.rappsilber.utils.RArrayUtils;
 import org.rappsilber.utils.UpdatableChar;
 
 /**
@@ -38,7 +39,7 @@ import org.rappsilber.utils.UpdatableChar;
  * @author lfischer
  */
 public class CSVRandomAccess extends CsvParser {
-    ArrayList<String[]> m_data = new ArrayList<String[]>();;
+    ArrayList<Object[]> m_data = new ArrayList<Object[]>();;
     int m_current = -1;
     Boolean m_loading = false;
     private final static Pattern NONNUMERIC = Pattern.compile("[^0-9E\\-.+]*");    
@@ -244,7 +245,7 @@ public class CSVRandomAccess extends CsvParser {
         synchronized(m_data) {
             if (m_current<m_data.size() -1) {
                 m_current ++;
-                setCurrentValues(m_data.get(m_current));
+                setCurrentValues(RArrayUtils.toStringArray(m_data.get(m_current)));
                 return true;
             } else {
                 loading = m_loading;
@@ -283,7 +284,7 @@ public class CSVRandomAccess extends CsvParser {
     public boolean previous() {
         if (m_current>0) {
             m_current --;
-            setCurrentValues(m_data.get(m_current));
+            setCurrentValues(RArrayUtils.toStringArray(m_data.get(m_current)));
             return true;
         }
         m_current = -1;
@@ -380,7 +381,7 @@ public class CSVRandomAccess extends CsvParser {
         CSVRandomAccess ccsv = new CSVRandomAccess(getDelimiter().charAt(0), getQuote().charAt(0));
         super.transfer(ccsv);
         synchronized(m_data) {
-            ccsv.m_data  = (ArrayList<String[]>) m_data.clone();
+            ccsv.m_data  = (ArrayList<Object[]>) m_data.clone();
         }
         ccsv.m_current  = m_current;
         ccsv.m_loading  = m_loading;
@@ -537,6 +538,18 @@ public class CSVRandomAccess extends CsvParser {
      * @return value at the specified place.
      */
     public String getValue(String field, Integer row) {
+        return getRawValue(field, row).toString();
+    }
+    
+
+    /**
+     * returns the specified value. 
+     * If the field does not contain a value or defined field is outside the CSV-file {@link #MISSING_FIELD} is returned
+     * @param field column 
+     * @param row row
+     * @return value at the specified place.
+     */
+    public Object getRawValue(String field, Integer row) {
         if (row ==null || row >= m_data.size())
             return MISSING_FIELD;
         
@@ -545,13 +558,13 @@ public class CSVRandomAccess extends CsvParser {
         if (column == null)
             return MISSING_FIELD;
         
-        String[] line = m_data.get(row); 
+        Object[] line = m_data.get(row); 
         if (column >= line.length)
             return MISSING_FIELD;
         
         return line[column];
     }
-    
+
     
     /**
      * returns the specified value. 
@@ -565,7 +578,7 @@ public class CSVRandomAccess extends CsvParser {
         if (field == null || row == null || row >= m_data.size())
             return defaultValue.getValue(this, row);
 
-        String[] line = m_data.get(row); 
+        Object[] line = m_data.get(row); 
 
         if (field >= line.length)
             return defaultValue.getValue(this, row);
@@ -577,7 +590,7 @@ public class CSVRandomAccess extends CsvParser {
             return v;
         }
             
-        return line[field];
+        return line[field].toString();
     }
     
     
@@ -611,37 +624,37 @@ public class CSVRandomAccess extends CsvParser {
             if (!value.equals(MISSING_FIELD)) {
                 synchronized (m_data) {
                     for (int i = m_data.size(); i < row; i++) {
-                        m_data.add(new String[0]);
+                        m_data.add(new Object[0]);
                     }
                 }
-                String[] line = new String[field+1];
+                Object[] line = new Object[field+1];
                 for (int i = 0; i<field; i++) {
                     line[i] = MISSING_FIELD;
                 }
                 if (value instanceof Number) {
                     line[field] = numberformat.format((Number)((Number) value).doubleValue());
                 } else {
-                    line[field] = value.toString();
+                    line[field] = value;
                 }
                 m_data.add(line);
                 if (field >= getMaxColumns())
                     setMaxColumns(field + 1);
             }
         } else {
-            String[] line = m_data.get(row); 
+            Object[] line = m_data.get(row); 
             if (field >= line.length) {
                 if (!value.equals(MISSING_FIELD)) {
-                    String[] dummyField = java.util.Arrays.copyOf(line, field + 1);
+                    Object[] dummyField = java.util.Arrays.copyOf(line, field + 1);
                     for (int f = line.length; f< field; f++) {
                         dummyField[f] = MISSING_FIELD;
                     }
-                    dummyField[field] = value.toString();
+                    dummyField[field] = value;
                     m_data.set(row, dummyField);
                     if (field >= getMaxColumns())
                         setMaxColumns(field + 1);
                 }
             } else {
-                line[field] = value.toString();
+                line[field] = value;
             }
         }
     }
@@ -665,6 +678,10 @@ public class CSVRandomAccess extends CsvParser {
         setValue(value, field, m_current);
     }
     
+
+    public String getValue(Integer field, Integer row) {
+        return getRawValue(field, row).toString();
+    }
     
     /**
      * returns the specified value. 
@@ -673,13 +690,13 @@ public class CSVRandomAccess extends CsvParser {
      * @param row row
      * @return value at the specified place.
      */
-    public String getValue(Integer field, Integer row) {
+    public Object getRawValue(Integer field, Integer row) {
         if (row == null || row >= m_data.size())
             return MISSING_FIELD;
-        String[] line = m_data.get(row); 
+        Object[] line = m_data.get(row); 
         if (field == null || field >= line.length)
             return MISSING_FIELD;
-        return line[field];
+        return line[field].toString();
     }
 
     /**
@@ -824,7 +841,7 @@ public class CSVRandomAccess extends CsvParser {
      * @return 
      */
     public String getLine(int row) {
-        String[] line = m_data.get(row);
+        Object[] line = m_data.get(row);
         return valuesToString(line);        
     }
     
@@ -833,7 +850,7 @@ public class CSVRandomAccess extends CsvParser {
      * @param values
      * @return 
      */
-    public String valuesToString(String[] values) {
+    public String valuesToString(Object[] values) {
         StringBuilder sb = new StringBuilder(values.length*10);
         for (int i = 0; i< values.length; i++) {
             sb.append(quoteValue(values[i]));
@@ -995,9 +1012,9 @@ public class CSVRandomAccess extends CsvParser {
     public void sortNumeric(final int column) {
         if (column > getMaxColumns())
             return;
-        Comparator<String[]> comp = new Comparator<String[]>(){
+        Comparator<Object[]> comp = new Comparator<Object[]>(){
             
-            public int compare(String[] s1, String[] s2) {
+            public int compare(Object[] s1, Object[] s2) {
                 if (s1.length <= column) {
                     if (s2.length <= column)
                         return 0;
@@ -1007,8 +1024,8 @@ public class CSVRandomAccess extends CsvParser {
                 if (s2.length <= column)
                     return -1;
                 
-                Matcher m1 = NUMERIC.matcher(s1[column]);
-                Matcher m2 = NUMERIC.matcher(s2[column]);
+                Matcher m1 = NUMERIC.matcher(s1[column].toString());
+                Matcher m2 = NUMERIC.matcher(s2[column].toString());
                 if (!m1.matches()) {
                     if (!m2.matches())
                         return 0;
@@ -1037,9 +1054,9 @@ public class CSVRandomAccess extends CsvParser {
     public void sortNumericFirst(final int column) {
         if (column > getMaxColumns())
             return;
-        Comparator<String[]> comp = new Comparator<String[]>(){
+        Comparator<Object[]> comp = new Comparator<Object[]>(){
             
-            public int compare(String[] s1, String[] s2) {
+            public int compare(Object[] s1, Object[] s2) {
                 if (s1.length <= column) {
                     if (s2.length <= column)
                         return 0;
@@ -1049,11 +1066,11 @@ public class CSVRandomAccess extends CsvParser {
                 if (s2.length <= column)
                     return -1;
                 
-                Matcher m1 = NUMERIC.matcher(s1[column]);
-                Matcher m2 = NUMERIC.matcher(s2[column]);
+                Matcher m1 = NUMERIC.matcher(s1[column].toString());
+                Matcher m2 = NUMERIC.matcher(s2[column].toString());
                 if (!m1.matches()) {
                     if (!m2.matches())
-                        return s1[column].compareTo(s2[column]);
+                        return s1[column].toString().compareTo(s2[column].toString());
                     else
                         return 1;
                 }
@@ -1078,9 +1095,9 @@ public class CSVRandomAccess extends CsvParser {
     public void sortNumericFirstReverse(final int column) {
         if (column > getMaxColumns())
             return;
-        Comparator<String[]> comp = new Comparator<String[]>(){
+        Comparator<Object[]> comp = new Comparator<Object[]>(){
             
-            public int compare(String[] s1, String[] s2) {
+            public int compare(Object[] s1, Object[] s2) {
                 if (s1.length <= column) {
                     if (s2.length <= column)
                         return 0;
@@ -1090,11 +1107,11 @@ public class CSVRandomAccess extends CsvParser {
                 if (s2.length <= column)
                     return -1;
                 
-                Matcher m1 = NUMERIC.matcher(s1[column]);
-                Matcher m2 = NUMERIC.matcher(s2[column]);
+                Matcher m1 = NUMERIC.matcher(s1[column].toString());
+                Matcher m2 = NUMERIC.matcher(s2[column].toString());
                 if (!m1.matches()) {
                     if (!m2.matches())
-                        return s2[column].compareTo(s1[column]);
+                        return s2[column].toString().compareTo(s1[column].toString());
                     else
                         return -1;
                 }
@@ -1119,9 +1136,9 @@ public class CSVRandomAccess extends CsvParser {
     public void sortNumericReverse(final int column) {
         if (column > getMaxColumns())
             return;
-        Comparator<String[]> comp = new Comparator<String[]>(){
+        Comparator<Object[]> comp = new Comparator<Object[]>(){
 
-            public int compare(String[] s1, String[] s2) {
+            public int compare(Object[] s1, Object[] s2) {
                 if (s1.length <= column) {
                     if (s2.length <= column)
                         return 0;
@@ -1131,8 +1148,8 @@ public class CSVRandomAccess extends CsvParser {
                 if (s2.length <= column)
                     return 1;
 
-                Matcher m1 = NUMERIC.matcher(s1[column]);
-                Matcher m2 = NUMERIC.matcher(s2[column]);
+                Matcher m1 = NUMERIC.matcher(s1[column].toString());
+                Matcher m2 = NUMERIC.matcher(s2[column].toString());
                 if (!m1.matches()) {
                     if (!m2.matches())
                         return 0;
@@ -1157,9 +1174,9 @@ public class CSVRandomAccess extends CsvParser {
      * @param criteria 
      */
     public void sort(final CSVSort[] criteria) {
-        Comparator<String[]> comp = new Comparator<String[]>(){
+        Comparator<Object[]> comp = new Comparator<Object[]>(){
             
-            public int compare(String[] s1, String[] s2) {
+            public int compare(Object[] s1, Object[] s2) {
                 for (int i =0; i< criteria.length;i++) {
                     int r = criteria[i].compare(s1, s2);
                     if (r!=0) 
@@ -1180,9 +1197,9 @@ public class CSVRandomAccess extends CsvParser {
      * @param criteria 
      */
     public void sortReverse(final CSVSort[] criteria) {
-        Comparator<String[]> comp = new Comparator<String[]>(){
+        Comparator<Object[]> comp = new Comparator<Object[]>(){
             
-            public int compare(String[] s1, String[] s2) {
+            public int compare(Object[] s1, Object[] s2) {
                 for (int i =0; i< criteria.length;i++) {
                     int r = criteria[i].compare(s1, s2);
                     if (r!=0) 
@@ -1203,9 +1220,9 @@ public class CSVRandomAccess extends CsvParser {
     public void sortAlpha(final int column) {
         if (column > getMaxColumns())
             return;
-        Comparator<String[]> comp = new Comparator<String[]>(){
+        Comparator<Object[]> comp = new Comparator<Object[]>(){
             
-            public int compare(String[] s1, String[] s2) {
+            public int compare(Object[] s1, Object[] s2) {
                 if (s1.length <= column) {
                     if (s2.length <= column)
                         return 0;
@@ -1215,7 +1232,7 @@ public class CSVRandomAccess extends CsvParser {
                 if (s2.length <= column)
                     return -1;
                 
-                return s1[column].compareTo(s2[column]) ;
+                return s1[column].toString().compareTo(s2[column].toString()) ;
             }
         };
         java.util.Collections.sort(m_data, comp);
@@ -1229,9 +1246,9 @@ public class CSVRandomAccess extends CsvParser {
     public void sortAlphaReverse(final int column) {
         if (column > getMaxColumns())
             return;
-        Comparator<String[]> comp = new Comparator<String[]>(){
+        Comparator<Object[]> comp = new Comparator<Object[]>(){
             
-            public int compare(String[] s1, String[] s2) {
+            public int compare(Object[] s1, Object[] s2) {
                 if (s1.length <= column) {
                     if (s2.length <= column)
                         return 0;
@@ -1241,7 +1258,7 @@ public class CSVRandomAccess extends CsvParser {
                 if (s2.length <= column)
                     return 1;
                 
-                return s2[column].compareTo(s1[column]) ;
+                return s2[column].toString().compareTo(s1[column].toString()) ;
             }
         };
         java.util.Collections.sort(m_data, comp);
@@ -1253,10 +1270,10 @@ public class CSVRandomAccess extends CsvParser {
      * @param row 
      */
     public synchronized void ensureCapacity(int row) {
-        String[] previous = m_data.get(row);
+        Object[] previous = m_data.get(row);
         int targetColumns = getMaxColumns();
         if (previous.length < targetColumns) {
-            String[] ext = java.util.Arrays.copyOf(previous, targetColumns);
+            Object[] ext = java.util.Arrays.copyOf(previous, targetColumns);
             java.util.Arrays.fill(ext, previous.length, targetColumns, MISSING_FIELD);
         }
     }
@@ -1323,7 +1340,7 @@ public class CSVRandomAccess extends CsvParser {
         if (hasHeader()) {
             out.println(valuesToString(getHeader()));
         }
-        for (String[] line : m_data) {
+        for (Object[] line : m_data) {
             out.println(valuesToString(line));
         }
     }
@@ -1347,7 +1364,7 @@ public class CSVRandomAccess extends CsvParser {
     public void switchHeader() {
         if (getHeader() == null) {
             if (!m_data.isEmpty()) {
-                setHeader(m_data.get(0));
+                setHeader(RArrayUtils.toStringArray(m_data.get(0)));
                 deleteRow(0);
             }
         } else {
@@ -1422,9 +1439,13 @@ public class CSVRandomAccess extends CsvParser {
     }
 
     private String[] getValues(int r) {
-        return m_data.get(r);
+        return RArrayUtils.toStringArray(m_data.get(r));
     }
 
+    private Object[] getRawValues(int r) {
+        return m_data.get(r);
+    }
+    
     /**
      * the number of the current line
      * @return the m_lineNumber
@@ -1436,7 +1457,7 @@ public class CSVRandomAccess extends CsvParser {
     /**
      * @return the m_data
      */
-    protected ArrayList<String[]> getData() {
+    protected ArrayList<Object[]> getData() {
         return m_data;
     }
     
