@@ -182,9 +182,21 @@ public class CSVRandomAccess extends CsvParser {
         if (setHeader && source.next()) {
             setHeader(source.getValues());
         }
+        int maxCol = getMaxColumns();
+        if (source.getMaxColumns() > maxCol) {
+            maxCol = source.getMaxColumns();
+            setMaxColumns(maxCol);
+            notifyColumnsChanged();
+        }
         while (source.next()) {
             synchronized(m_data) {
-                m_data.add(source.getValues());
+                String[] v = source.getValues();
+                m_data.add(v);
+                if (v.length > maxCol) {
+                    maxCol = v.length;
+                    setMaxColumns(maxCol);
+                    notifyColumnsChanged();
+                }
             }
             if (row % 10 == 0)
                 notifyProgress(row);

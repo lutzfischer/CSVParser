@@ -397,7 +397,7 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
             m_csv.addHeaderChangedListener(m_csvheaderChanged);
         }
         
-        if (m_model == null) {
+//        if (m_model == null) {
             m_model = new CSVListTableModel(this);
             tblCSV.setModel(m_model);
             JTable rownumbers = new JTable(new RowNumberModel(m_model));
@@ -425,7 +425,7 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
 //            });
 //            rownumbers.getColumn(0).setWidth(100);
             spCSV.setRowHeaderView(rownumbers);
-        }
+//        }
 
         if (m_csv!= null) {
             m_csv.addListenerComplete(m_model.complete);

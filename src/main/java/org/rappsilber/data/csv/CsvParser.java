@@ -292,6 +292,9 @@ public class CsvParser {
                     }
                 }
             }
+            if (header.length> getMaxColumns()) {
+                setMaxColumns(header.length);
+            }
         }
     }
     
