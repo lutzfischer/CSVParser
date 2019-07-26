@@ -892,6 +892,12 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
                 header[c]=Integer.toString(c);
             }
         }
+        for (int i = 0 ; i<header.length;i++) {
+            if (header[i] == null || header[i].isEmpty()) {
+                header[i]=Integer.toString(i);
+            }
+        }
+
         conditionList1.setColumns(header);
     }
 
