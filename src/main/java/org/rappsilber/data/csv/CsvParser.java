@@ -79,7 +79,7 @@ public class CsvParser {
     /** the file that is read - if a file is read **/
     private File                        m_inputFile;
     /** if we should guess the delimiter - what are the candidates**/
-    protected static char[]             TEST_DELIMITERS = {',','\t','|',';',' '};
+    protected static char[]             TEST_DELIMITERS = {',','\t','|',';'};
     /** if we should guess the quote chars - what are the candidates**/
     protected static char[]             TEST_QUOTES = {'\'','"'};
 //    /** a pattern defining the values, that would interpreted as true */
