@@ -148,11 +148,11 @@ public class CsvParser {
         m_quote = q;
         m_doublequote = m_quote + m_quote;
         if (d.matches("\\t")) {
-            m_cellValue = Pattern.compile(" *(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^ "+ d +"])|) *"+ d + "?");
+            m_cellValue = Pattern.compile("(?<=\\t|^) *(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^ "+ d +"])|) *"+ d + "?");
         } else if (d.matches(" ")) {
-            m_cellValue = Pattern.compile("\\t*(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^\\t"+ d +"])|)\\t*"+ d + "?");
+            m_cellValue = Pattern.compile("(?<= |^)\\t*(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^\\t"+ d +"])|)\\t*"+ d + "?");
         } else
-            m_cellValue = Pattern.compile("\\s*(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^\\s"+ d +"])|)\\s*"+ d + "?");
+            m_cellValue = Pattern.compile("(?<="+d+"|^)\\s*(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^\\s"+ d +"])|)\\s*"+ d + "?");
     }
 
     
@@ -246,7 +246,7 @@ public class CsvParser {
         }
 //        if (c>m_maxColumns)
 //            m_maxColumns = c;
-        ret.remove(ret.size() - 1);
+        //ret.remove(ret.size() - 1);
         return ret;
     }
     
