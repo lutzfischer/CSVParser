@@ -239,7 +239,11 @@ public class CsvParser {
             if (m.group(1) != null) {
                 ret.add(m.group(1).replace(m_doublequote, m_quote));
             } else {
-                ret.add(m.group(2));
+                String v = m.group(2);
+                if (v==null || v.length() == 0)
+                    ret.add(MISSING_FIELD);
+                else
+                    ret.add(m.group(2));
                 countQuoted.value++;
             }
             c++;
@@ -937,7 +941,7 @@ public class CsvParser {
      */    
     public Integer getInteger(Integer field, Integer defaultValue) {
         String v = getValue(field);
-        if (v == MISSING_FIELD)
+        if (v == MISSING_FIELD || v == null)
             return defaultValue;
         
         try {
