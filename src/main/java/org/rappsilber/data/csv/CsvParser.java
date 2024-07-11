@@ -51,6 +51,7 @@ public class CsvParser {
     private String[]                    m_header;
     /** list of list, containing alternatives for column-names **/
     private ArrayList<HashSet<String>>  m_headerAlternatives = new ArrayList<HashSet<String>>();
+    private HashMap<String,Integer>     m_headerAlternativesOrder = new HashMap<>();
     /** maps the column-name to the column-index **/
     private HashMap<String,Integer>     m_headerToColumn = new HashMap<String, Integer>();
     /** the field delimeter **/
@@ -273,6 +274,8 @@ public class CsvParser {
      */
     public void setHeader(String[] header) {
         m_header = header;
+        Integer maxInt = Integer.MAX_VALUE;
+        HashMap<HashSet<String>, Integer> headerorder = new HashMap<>();
         if (header == null) {
             getHeaderToColumn().clear();
         } else {
@@ -287,13 +290,22 @@ public class CsvParser {
                 String hl = h.toLowerCase();
                 if (!h.contentEquals(hl) && getHeaderToColumn().get(h.toLowerCase()) == null)
                     getHeaderToColumn().put(hl , i);
-                // now we look, if we have some alternative names for the column
-                for (HashSet<String> names : getHeaderAlternatives()) {
-                    if (names.contains(h) || names.contains(hl)) {
-                        for (String ha : names) {
-                            getHeaderToColumn().put(ha , i);
+                Integer hOrder = m_headerAlternativesOrder.getOrDefault(h, maxInt);
+                Integer hlOrder = m_headerAlternativesOrder.getOrDefault(hl, maxInt);
+                
+                if (hOrder < maxInt | hlOrder < maxInt) {
+                    // now we look, if we have some alternative names for the column
+                    for (HashSet<String> names : getHeaderAlternatives()) {
+                        Integer lastorder = headerorder.get(names);
+                        if ((names.contains(h) || names.contains(hl)) && 
+                                (lastorder == null || hOrder < lastorder || hlOrder < lastorder)) {
+                            for (String ha : names) {
+                                getHeaderToColumn().put(ha , i);
+                            }
+                            Integer newOrder = names.contains(h) ? hOrder: hlOrder;
+                            headerorder.put(names, newOrder);
+                            break;
                         }
-                        break;
                     }
                 }
             }
@@ -386,6 +398,7 @@ public class CsvParser {
         boolean isSet=false;
         for (HashSet<String> names : getHeaderAlternatives()) {
             if (names.contains(name)) {
+                this.m_headerAlternativesOrder.put(alternative, names.size());
                 names.add(alternative);
                 Integer col = getColumn(name);
                 if (col == null) {
@@ -402,6 +415,7 @@ public class CsvParser {
             }
             if (names.contains(alternative)) {
                 String reference = names.iterator().next();
+                this.m_headerAlternativesOrder.put(name, names.size());
                 names.add(name);
                 Integer col = getColumn(reference);
                 if (col != null)
@@ -416,6 +430,8 @@ public class CsvParser {
             names.add(name);
             names.add(alternative);
             getHeaderAlternatives().add(names);
+            this.m_headerAlternativesOrder.put(name, 0);
+            this.m_headerAlternativesOrder.put(alternative, 1);            
             if (getColumn(name) != null)
                 getHeaderToColumn().put(alternative, getColumn(name));
             else if (getColumn(alternative) != null)
