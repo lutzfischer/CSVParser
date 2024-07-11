@@ -5,6 +5,8 @@
  */
 package org.rappsilber.data.csv.condition;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.rappsilber.data.csv.CSVRandomAccess;
 import org.rappsilber.data.csv.CsvParser;
 import org.rappsilber.utils.RArrayUtils;
@@ -13,8 +15,7 @@ import org.rappsilber.utils.RArrayUtils;
  *
  * @author lfischer
  */
-public class CsvConditionAnd implements CsvCondition{
-    private CsvCondition[] conditions;
+public class CsvConditionAnd extends CsvConditionList{
 
     public CsvConditionAnd() {
     }
@@ -42,37 +43,19 @@ public class CsvConditionAnd implements CsvCondition{
         return true;
     }
 
-    /**
-     * @return the conditions
-     */
-    public CsvCondition[] getConditions() {
-        return conditions;
-    }
 
-    /**
-     * @param conditions the conditions to set
-     */
-    public void setConditions(CsvCondition[] conditions) {
-        this.conditions = conditions;
-    }
-    
-    /**
-     * @param conditions the conditions to set
-     */
-    public void addCondition(CsvCondition condition) {
-        if (conditions == null) {
-            conditions = new CsvCondition[] {condition};
-        } else {
-            CsvCondition[] dummy = new CsvCondition[conditions.length+1];
-            System.arraycopy(conditions, 0, dummy, 0, conditions.length);
-            dummy[conditions.length] = condition;
-            conditions = dummy;
-        }
-    }
     
     public String toString() {
         return "(" + RArrayUtils.toString(conditions, " AND ") + ")";
     }
-        
     
+
+        
+ 
+        
+    @Override
+    public String getField() {
+        return null;
+    }
+
 }

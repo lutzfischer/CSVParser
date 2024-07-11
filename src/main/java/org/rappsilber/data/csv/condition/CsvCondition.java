@@ -28,4 +28,6 @@ public interface CsvCondition {
      */
     boolean fits(CsvParser csv);
     
+    String  getField();
+    
 }

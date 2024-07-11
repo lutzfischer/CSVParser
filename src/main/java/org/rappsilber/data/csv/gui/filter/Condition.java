@@ -12,6 +12,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import org.rappsilber.data.csv.CsvParser;
 import org.rappsilber.data.csv.condition.CsvCondition;
+import org.rappsilber.data.csv.condition.CsvConditionAnd;
 import org.rappsilber.data.csv.condition.CsvConditionContainsField;
 import org.rappsilber.data.csv.condition.CsvConditionDoubleEqual;
 import org.rappsilber.data.csv.condition.CsvConditionDoubleGreaterEqual;
@@ -57,6 +58,7 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
     String ltField = "< field";
     String leField = "<= field";
     String containsField = "contains field";
+    String missing = "empty";
     ArrayList<ChangeListener>  ChangeListeners = new ArrayList<>();
     CsvParser csv;
     
@@ -68,7 +70,7 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
         new JButton().addActionListener(cbColumn);
         cbColumnCompare.setVisible(false);
         operants=new String[] {
-            equals,gt,ge,lt,le,contains,equalsField,gtField,geField,ltField,leField,containsField
+            equals,gt,ge,lt,le,contains,equalsField,gtField,geField,ltField,leField,containsField,matches, missing
         };
         fieldCompares = new HashSet<>();
         fieldCompares.add(equalsField);
@@ -84,6 +86,11 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
         this();
         setColumns(columns);
         
+    }    
+
+    public Condition(String[] columns, CsvCondition condition) {
+        this();
+        setColumns(columns);
     }    
 
     /**
@@ -239,6 +246,8 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
                     con = new CsvConditionStringContains(col, vs, csv);
                 } else if (op.contentEquals(matches)) {
                     con = new CsvConditionStringMatches(col, vs, csv);
+                } else if (op.contentEquals(missing)) {
+                    con = new CsvConditionMissing(col, csv);
                 }
             }
         }
@@ -248,6 +257,89 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
             return con;
     }
 
+    public CsvCondition setCondition(CsvCondition condition) {
+        if (condition instanceof CsvConditionContainsField) {
+            cbOperant.setSelectedItem(containsField);
+            //cbColumnCompare.setSelectedItem(((CsvConditionContainsField) condition).);
+        }
+        
+        String op = (String) cbOperant.getSelectedItem();
+        String vs = txtValue.getText();
+        int col = cbColumn.getSelectedIndex()-3;
+        CsvCondition con = null;
+        if (col<0)
+            return null;
+        if (fieldCompares.contains(op)) {
+            if (op == equalsField) {
+                con = new CsvConditionEqualsField(col, cbColumnCompare.getSelectedIndex(),csv);
+            } else if (op == gtField) {
+                con = new CsvConditionGreaterField(col, cbColumnCompare.getSelectedIndex(),csv);
+            } else if (op == geField) {
+                con = new CsvConditionGreaterOrEqualsField(col, cbColumnCompare.getSelectedIndex(),csv);
+            } else if (op == ltField) {
+                con = new CsvConditionLessField(col, cbColumnCompare.getSelectedIndex(),csv);
+            } else if (op == leField) {
+                con = new CsvConditionLessOrEqualsField(col, cbColumnCompare.getSelectedIndex(),csv);
+            } else if (op == containsField) {
+                con = new CsvConditionContainsField(col, cbColumnCompare.getSelectedIndex(),csv);
+            }
+        } else if (op == regex) {
+            con = new CsvConditionStringMatches(col, vs,csv);
+        } else {
+        
+            Double vd = null;
+            if (!cbOperant.getSelectedItem().toString().contentEquals("contains")) {
+                try {
+                    vd = Double.parseDouble(vs);
+                } catch (NumberFormatException ne) {
+                }
+            }
+
+            if (vd != null) {
+                // we assume a numeric value
+                if (op == equals) {
+                    con = new CsvConditionDoubleEqual(col, vd,csv);
+                } else if (op == ge) {
+                    con = new CsvConditionDoubleGreaterEqual(col, vd, csv);
+                } else if (op == le) {
+                    con = new CsvConditionDoubleLessEqual(col, vd, csv);
+                } if (op== gt) {
+                    con = new CsvConditionDoubleGreaterThen(col, vd, csv);
+                } else if (op == lt) {
+                    con = new CsvConditionDoubleLessThen(col, vd, csv);
+                }
+            } else {
+                if (vs.isEmpty()) {
+                    con = new CsvConditionMissing(col, csv);
+                }
+                if (op.contentEquals(equals)) {
+                    if (vs == null || vs.isEmpty()) {
+                        con = new CsvConditionMissing(col, csv);
+                    }   else
+                        con = new CsvConditionStringEqual(col, vs, csv);
+                } else if (op.contentEquals(ge)) {
+                    con = new CsvConditionStringGreaterEqual(col, vs, csv);
+                } else if (op.contentEquals(le)) {
+                    con = new CsvConditionStringLessEqual(col, vs, csv);
+                } else if (op.contentEquals(gt)) {
+                    con = new CsvConditionStringGreaterThen(col, vs, csv);
+                } else if (op.contentEquals(lt)) {
+                    con = new CsvConditionStringLessThen(col, vs, csv);
+                } else if (op.contentEquals(contains)) {
+                    con = new CsvConditionStringContains(col, vs, csv);
+                } else if (op.contentEquals(matches)) {
+                    con = new CsvConditionStringMatches(col, vs, csv);
+                } else if (op.contentEquals(missing)) {
+                    con = new CsvConditionMissing(col, csv);
+                }
+            }
+        }
+        if (ckNot.isSelected())
+            return new CsvConditionNot(con);
+        else
+            return con;
+    }
+    
     public int setCsvParser(CsvParser csv) {
         this.csv = csv;
         return setColumns(csv.getHeader());

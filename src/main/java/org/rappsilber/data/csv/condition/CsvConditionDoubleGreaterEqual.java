@@ -58,6 +58,10 @@ public class CsvConditionDoubleGreaterEqual implements CsvCondition {
         return "([" + fieldName + "] >= " + value + ")";
     }    
     
+    @Override
+    public String getField() {
+        return fieldName;
+    }
     
     
 }

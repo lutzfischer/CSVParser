@@ -120,13 +120,38 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
             cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "AND", "OR" }));
         }
     }
-    
+
     /**
      * Creates new form ConditionList
      */
     public ConditionList(String[] columns) {
         this();
         setColumns(columns);
+    }
+    
+    /**
+     * Creates new form ConditionList
+     */
+    public ConditionList(String[] columns, CsvCondition condition) {
+        this();
+        setColumns(columns);
+        CsvCondition[] inner;
+        if (condition instanceof CsvConditionNot) {
+            this.ckNot.setSelected(true);
+            condition = ((CsvConditionNot) condition).getInner();
+        }
+        if (condition instanceof CsvConditionAnd) {
+            setAnd();
+            inner= ((CsvConditionAnd)condition).getConditions();
+        } else if (condition instanceof CsvConditionOr) {
+            setOr();
+            inner= ((CsvConditionAnd)condition).getConditions();
+        } else 
+            inner = new CsvCondition[] {condition};
+//        for (Condition c : inner)   {
+//            
+//        }
+
     }
     
     public CsvCondition getCondition() {

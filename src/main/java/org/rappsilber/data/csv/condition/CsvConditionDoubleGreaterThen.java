@@ -59,5 +59,10 @@ public class CsvConditionDoubleGreaterThen implements CsvCondition {
     public String toString() {
         return "([" + fieldName + "] > " + value + ")";
     }    
-        
+
+    @Override
+    public String getField() {
+        return fieldName;
+    }
+    
 }

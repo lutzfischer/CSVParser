@@ -65,5 +65,10 @@ public class CsvConditionLessField implements CsvCondition {
    public String toString() {
         return "([" + fieldName1 + "] < [" + fieldName2 + "])";
     }    
+   
+    @Override
+    public String getField() {
+        return fieldName1;
+    }
             
 }

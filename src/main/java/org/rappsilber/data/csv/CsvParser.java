@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -148,11 +149,11 @@ public class CsvParser {
         m_quote = q;
         m_doublequote = m_quote + m_quote;
         if (d.matches("\\t")) {
-            m_cellValue = Pattern.compile(" *(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^ "+ d +"])|) *"+ d + "?");
+            m_cellValue = Pattern.compile("(?<=\\t|^) *(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^ "+ d +"])|) *"+ d + "?");
         } else if (d.matches(" ")) {
-            m_cellValue = Pattern.compile("\\t*(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^\\t"+ d +"])|)\\t*"+ d + "?");
+            m_cellValue = Pattern.compile("(?<= |^)\\t*(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^\\t"+ d +"])|)\\t*"+ d + "?");
         } else
-            m_cellValue = Pattern.compile("\\s*(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^\\s"+ d +"])|)\\s*"+ d + "?");
+            m_cellValue = Pattern.compile("(?<="+d+"|^)\\s*(?:"+q+"((?:[^"+q+"]*(?:"+q+q+")?)*)"+q+"|([^"+ d +"]*[^\\s"+ d +"])|)\\s*"+ d + "?");
     }
 
     
@@ -239,14 +240,18 @@ public class CsvParser {
             if (m.group(1) != null) {
                 ret.add(m.group(1).replace(m_doublequote, m_quote));
             } else {
-                ret.add(m.group(2));
+                String v = m.group(2);
+                if (v==null || v.length() == 0)
+                    ret.add(MISSING_FIELD);
+                else
+                    ret.add(m.group(2));
                 countQuoted.value++;
             }
             c++;
         }
 //        if (c>m_maxColumns)
 //            m_maxColumns = c;
-        ret.remove(ret.size() - 1);
+        //ret.remove(ret.size() - 1);
         return ret;
     }
     
@@ -297,6 +302,45 @@ public class CsvParser {
             }
         }
     }
+
+    
+    /**
+     * renames file headers to the given name. 
+     * 
+     * @param header
+     */
+    public void renameHeader(HashMap<String, String> fileToExpected) {
+        HashSet<String> expected = new HashSet<>(fileToExpected.values());
+        getHeaderToColumn().clear();
+        // rename existing headers
+        for (int i = 0; i<this.getHeader().length; i++) {
+            String h = this.getHeader(i);
+
+            if (expected.contains(h)) {
+                do  {
+                    h=h+"_previous";
+                } while (expected.contains(h));
+                this.getHeader()[i] = h;
+                // remove previous alternative mappings for this column
+                ArrayList<String> mappingToRemove = new ArrayList<>();
+                for (Map.Entry<String, Integer> e : getHeaderToColumn().entrySet()) {
+                    if(e.getValue() == i) {
+                        mappingToRemove.add(e.getKey());
+                    }
+                }
+                for (String r : mappingToRemove) {
+                    getHeaderToColumn().remove(r);
+                }
+            } else if (fileToExpected.containsKey(h)) {
+                this.getHeader()[i] = fileToExpected.get(h);
+            }
+            getHeaderToColumn().put(this.getHeader()[i],i);
+            
+        }
+    }
+
+
+    
     
     /**
      * removes any column-name
@@ -937,7 +981,7 @@ public class CsvParser {
      */    
     public Integer getInteger(Integer field, Integer defaultValue) {
         String v = getValue(field);
-        if (v == MISSING_FIELD)
+        if (v == MISSING_FIELD || v == null)
             return defaultValue;
         
         try {

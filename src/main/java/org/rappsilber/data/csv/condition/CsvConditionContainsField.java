@@ -61,5 +61,10 @@ public class CsvConditionContainsField implements CsvCondition {
     public String toString() {
         return "([" + fieldName1 + "] contains [" + fieldName2 + "])";
     }
+
+    @Override
+    public String getField() {
+        return fieldName1;
+    }
             
 }

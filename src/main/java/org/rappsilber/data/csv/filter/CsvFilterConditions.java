@@ -38,5 +38,12 @@ public class CsvFilterConditions extends CsvAbstractFilter{
         }
         return true;
     }
+
+    @Override
+    public String getField() {
+        return null;
+    }
+    
+    
     
 }

@@ -51,5 +51,10 @@ public class CsvConditionNot implements CsvCondition{
     public String toString() {
         return "(NOT "+ inner.toString() +" )";
     }      
-        
+
+    @Override
+    public String getField() {
+        return null;
+    }
+    
 }

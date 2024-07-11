@@ -57,5 +57,10 @@ public class CsvConditionMissing implements CsvCondition {
     public String toString() {
         return "([" + fieldName + "] is missing)";
     }      
+
+    @Override
+    public String getField() {
+        return fieldName;
+    }
     
 }
