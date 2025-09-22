@@ -28,12 +28,15 @@ import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.table.AbstractTableModel;
 import org.rappsilber.data.csv.CSVRandomAccess;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import org.rappsilber.data.csv.LoadListener;
 import org.rappsilber.gui.components.memory.Memory;
+import org.rappsilber.data.csv.condition.CsvConditionParser;
 
 /**
  * A component to load and display a csv-file with the capability to aply filter to the csv file
@@ -385,11 +388,15 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
     
     public void setCSV(CSVRandomAccess csv) {
         if (m_csv != null) {
-            m_csv.removeListenerProgress(m_model);
-            m_csv.removeListenerComplete(m_model.complete);
-            m_csv.removeHeaderChangedListener(m_csvheaderChanged);
+            if (m_model != null) {
+                m_csv.removeListenerProgress(m_model);
+                m_csv.removeListenerComplete(m_model.complete);
+            }
+            if (m_csvheaderChanged != null)
+                m_csv.removeHeaderChangedListener(m_csvheaderChanged);
         }
         m_csv = csv;
+        conditionList1.setCsvParser(csv);
         cornerLabel.setText("Loading");
 
 
@@ -754,9 +761,9 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
         pFilter.setLayout(pFilterLayout);
         pFilterLayout.setHorizontalGroup(
             pFilterLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(pFilterLayout.createSequentialGroup()
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, pFilterLayout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(conditionList1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                .addComponent(conditionList1, javax.swing.GroupLayout.DEFAULT_SIZE, 495, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btnApply, javax.swing.GroupLayout.PREFERRED_SIZE, 95, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
@@ -766,7 +773,7 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
                 .addGroup(pFilterLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(btnApply, javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(conditionList1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(0, 23, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout pLoadLayout = new javax.swing.GroupLayout(pLoad);
@@ -774,7 +781,7 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
         pLoadLayout.setHorizontalGroup(
             pLoadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(pLoadLayout.createSequentialGroup()
-                .addComponent(fbCSVRead, javax.swing.GroupLayout.DEFAULT_SIZE, 387, Short.MAX_VALUE)
+                .addComponent(fbCSVRead, javax.swing.GroupLayout.DEFAULT_SIZE, 397, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(ckHasHeader)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)

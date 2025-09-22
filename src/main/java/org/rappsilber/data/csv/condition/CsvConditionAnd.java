@@ -57,5 +57,16 @@ public class CsvConditionAnd extends CsvConditionList{
     public String getField() {
         return null;
     }
+    
+    @Override
+    public String getValue() {
+        return null;
+    }
+
+    @Override
+    public String getComperatorString() {
+        return "AND";
+    }
+    
 
 }

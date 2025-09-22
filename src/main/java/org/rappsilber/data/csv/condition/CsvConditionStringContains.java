@@ -65,4 +65,15 @@ public class CsvConditionStringContains implements CsvCondition {
         return fieldName;
     }
     
+    
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public String getComperatorString() {
+        return "contains";
+    }
+
 }

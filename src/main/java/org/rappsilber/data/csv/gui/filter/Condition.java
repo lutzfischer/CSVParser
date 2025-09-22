@@ -113,6 +113,8 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
     
     public int setColumns(String[] columns) {
         int ret =0;
+        if (columns == null) 
+            return ret;
         Integer selectedColumn = null;
         String selectedColumnName = null;
         Integer selectedColumnCompare = null;
@@ -168,6 +170,61 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
         return ret;
     }
     
+    public void setColumn(int column) {
+        cbColumn.setSelectedIndex(column+3);
+    }
+
+    public void setColumn(String column) {
+        cbColumn.setSelectedItem(column);
+    }
+
+    public void setColumnCompare(int column) {
+        if (column <0) {
+            cbColumnCompare.setVisible(false);
+            txtValue.setVisible(true);
+            txtValue.setText("");
+        } else {
+            cbColumnCompare.setVisible(true);
+            txtValue.setVisible(false);
+        }
+        cbColumnCompare.setSelectedIndex(column);
+    }
+    
+    public void setNot(boolean not) {
+        javax.swing.SwingUtilities.invokeLater( new Runnable() {
+            public void run() {
+                ckNot.setSelected(not);
+            }
+        });
+    }
+
+    public void setColumnCompare(String column) {
+        cbColumnCompare.setSelectedItem(column);
+        if (column == null) {
+            cbColumnCompare.setVisible(false);
+            txtValue.setVisible(true);
+        } else {
+            cbColumnCompare.setVisible(true);
+            txtValue.setVisible(false);
+            txtValue.setText("");
+        }
+    }
+
+    public void setValue(String value) {
+        txtValue.setText(value);
+    }
+
+    public void setComperatorString(String comperator) {
+        cbOperant.setSelectedItem(comperator);
+        if (fieldCompares.contains(comperator)) {
+            cbColumnCompare.setVisible(true);
+            this.txtValue.setVisible(false);
+        } else {
+            cbColumnCompare.setVisible(false);
+            this.txtValue.setVisible(true);
+        }
+    }
+
     public void setEmpty(){
         cbColumn.setSelectedIndex(0);
     }
@@ -389,7 +446,19 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
             }
         });
 
+        txtValue.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                txtValueActionPerformed(evt);
+            }
+        });
+
         ckNot.setText("Not");
+
+        cbColumnCompare.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cbColumnCompareActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -404,7 +473,7 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
                 .addGap(12, 12, 12)
                 .addComponent(cbColumnCompare, 0, 54, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(txtValue, javax.swing.GroupLayout.DEFAULT_SIZE, 60, Short.MAX_VALUE))
+                .addComponent(txtValue, javax.swing.GroupLayout.PREFERRED_SIZE, 60, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -436,6 +505,20 @@ public class Condition extends javax.swing.JPanel implements CSVConditionProvide
             cl.stateChanged(e);
         }
     }//GEN-LAST:event_cbColumnActionPerformed
+
+    private void cbColumnCompareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbColumnCompareActionPerformed
+        ChangeEvent e = new ChangeEvent(this);
+        for (ChangeListener cl : listenerList.getListeners(ChangeListener.class)) {
+            cl.stateChanged(e);
+        }
+    }//GEN-LAST:event_cbColumnCompareActionPerformed
+
+    private void txtValueActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtValueActionPerformed
+        ChangeEvent e = new ChangeEvent(this);
+        for (ChangeListener cl : listenerList.getListeners(ChangeListener.class)) {
+            cl.stateChanged(e);
+        }
+    }//GEN-LAST:event_txtValueActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

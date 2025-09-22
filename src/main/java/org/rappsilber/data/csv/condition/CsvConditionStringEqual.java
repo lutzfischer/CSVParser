@@ -62,4 +62,16 @@ public class CsvConditionStringEqual implements CsvCondition {
     public String getField() {
         return fieldName;
     }
+
+    
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public String getComperatorString() {
+        return "=";
+    }
+
 }

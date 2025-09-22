@@ -64,5 +64,17 @@ public class CsvConditionStringMatches implements CsvCondition {
     public String getField() {
         return fieldName;
     }
+
+    
+    @Override
+    public String getValue() {
+        return value.pattern();
+    }
+
+    @Override
+    public String getComperatorString() {
+        return "~";
+    }
+    
     
 }

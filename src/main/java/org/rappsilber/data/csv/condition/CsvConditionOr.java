@@ -45,5 +45,14 @@ public class CsvConditionOr extends CsvConditionList{
         return "(" + RArrayUtils.toString(conditions, " OR ") + ")";
     }
 
+    @Override
+    public String getValue() {
+        return null;
+    }
+
+    @Override
+    public String getComperatorString() {
+        return "NOT";
+    }
     
 }

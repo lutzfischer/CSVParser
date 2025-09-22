@@ -6,14 +6,16 @@
 package org.rappsilber.data.csv.gui.filter;
 
 import java.awt.BorderLayout;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -22,10 +24,12 @@ import javax.swing.event.ChangeListener;
 import org.rappsilber.data.csv.CSVRandomAccess;
 import org.rappsilber.data.csv.CsvParser;
 import org.rappsilber.data.csv.condition.CsvCondition;
+import org.rappsilber.data.csv.condition.CsvConditionFieldCompare;
+import org.rappsilber.data.csv.condition.CsvConditionList;
 import org.rappsilber.data.csv.condition.CsvConditionAnd;
 import org.rappsilber.data.csv.condition.CsvConditionNot;
 import org.rappsilber.data.csv.condition.CsvConditionOr;
-import org.rappsilber.data.csv.gui.CSVPanel;
+import org.rappsilber.data.csv.condition.CsvConditionParser;
 
 /**
  *
@@ -111,14 +115,36 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
         conditions.add(firstCondition);
         firstCondition.addChangeListener(elementChanged);
         //new GridLayout( 2, false );
+        txtFilterText.setVisible(false);
     }
     
     public void setRemovable(boolean r) {
-        if (r) {
-            cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "AND", "OR", "remove" }));
+        if (txtFilterText.isVisible()) {
+            if (r) {
+                cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "GUI", "TEXT", "remove" }));
+            } else {
+                cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "GUI", "TEXT"}));
+            }
         } else {
-            cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "AND", "OR" }));
+            if (r) {
+                cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "AND", "OR", "remove" }));
+            } else {
+                cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "AND", "OR", "TEXT" }));
+            }
         }
+    }
+
+    public void updateANDORTEXT() {
+        setRemovable(isRemovable());
+    }
+
+    public boolean isRemovable() {
+        for (int i = 0; i<cbOperant.getItemCount(); i++) {
+            if (cbOperant.getItemAt(i).equals("remove")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -135,23 +161,7 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
     public ConditionList(String[] columns, CsvCondition condition) {
         this();
         setColumns(columns);
-        CsvCondition[] inner;
-        if (condition instanceof CsvConditionNot) {
-            this.ckNot.setSelected(true);
-            condition = ((CsvConditionNot) condition).getInner();
-        }
-        if (condition instanceof CsvConditionAnd) {
-            setAnd();
-            inner= ((CsvConditionAnd)condition).getConditions();
-        } else if (condition instanceof CsvConditionOr) {
-            setOr();
-            inner= ((CsvConditionAnd)condition).getConditions();
-        } else 
-            inner = new CsvCondition[] {condition};
-//        for (Condition c : inner)   {
-//            
-//        }
-
+        setCondition(condition);
     }
     
     public CsvCondition getCondition() {
@@ -166,8 +176,12 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
             if (con!= null)
                 retl.add(con);
         }
-        
-        if (cbOperant.getSelectedItem().equals("AND")) {
+        String op = cbOperant.getSelectedItem().toString();
+        if (op.contentEquals("TEXT"))
+            op = cbOperantOld != null ? cbOperantOld : "AND";
+
+
+        if (op.equals("AND")) {
             ret = new CsvConditionAnd(retl.toArray(new CsvCondition[retl.size()]));
         } else {
             ret = new CsvConditionOr(retl.toArray(new CsvCondition[retl.size()]));
@@ -194,6 +208,19 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
             }
         }
     }
+
+    public void setNot(){
+        if (!ckNot.isSelected()) {
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    ckNot.setSelected(true);
+                }
+            });
+        }
+    }
+
+
     public void setAnd(){
         if (!cbOperant.getSelectedItem().equals("AND")) {
             for (int i = 0; i<cbOperant.getItemCount(); i++) {
@@ -226,10 +253,185 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
     
     public int setCsvParser(CsvParser csv) {
         this.csv = csv;
-        int ret = setColumns(csv.getHeader());
+        int ret = 0;
+        if (csv.getHeader() != null)
+             ret = setColumns(csv.getHeader());
         for (CSVConditionProvider c: conditions) 
             c.setCsvParser(csv);
         return ret;
+    }
+    
+    /**
+     * Sets the condition for this ConditionList by parsing the provided CsvCondition
+     * and updating the UI components accordingly.
+     * @param condition the condition to set
+     */
+    public void setCondition(CsvCondition condition) {
+        // Clear the form
+        clearConditions();
+        if (condition == null)
+            return;
+        
+        // Handle NOT condition
+        if (condition instanceof CsvConditionNot) {
+            ckNot.setSelected(true);
+            condition = ((CsvConditionNot) condition).getInner();
+            if (condition instanceof CsvConditionList && ((CsvConditionList) condition).getConditions().length == 1) {
+                condition = ((CsvConditionList) condition).getConditions()[0];
+            }
+            if (condition == null)
+                return;
+        } else {
+            ckNot.setSelected(false);
+        }
+        
+        // Handle compound conditions (AND/OR)
+        if (condition instanceof CsvConditionAnd) {
+            setAnd();
+            CsvCondition[] innerConditions = ((CsvConditionAnd) condition).getConditions();
+            populateConditions(innerConditions);
+        } else if (condition instanceof CsvConditionOr) {
+            setOr();
+            CsvCondition[] innerConditions = ((CsvConditionOr) condition).getConditions();
+            populateConditions(innerConditions);
+        } else {
+            // Single condition
+            setAnd(); // Default to AND for single conditions
+            populateConditions(new CsvCondition[]{condition});
+        }
+        
+        // Refresh the UI
+        refreshUI();
+    }
+    
+    /**
+     * Clears all existing conditions from the form
+     */
+    private void clearConditions() {
+        // Remove all conditions except the first one
+        for (int i = conditions.size() - 1; i >= 1; i--) {
+            conditions.remove(i);
+        }
+        
+        // Clear sublists
+        subLists.clear();
+        
+        // Reset the first condition
+        if (!conditions.isEmpty()) {
+            conditions.get(0).setEmpty();
+        }
+    }
+    
+    /**
+     * Populates the form with the given array of conditions
+     * Note: This implementation has limitations with complex conditions due to 
+     * the incomplete setCondition method in the Condition class.
+     */
+    private void populateConditions(CsvCondition[] conditionsArray) {
+        for (int i = 0; i < conditionsArray.length; i++) {
+            CsvCondition cond = conditionsArray[i];
+            boolean not = false;
+            if (cond instanceof CsvConditionNot) {
+                cond = ((CsvConditionNot) cond).getInner();
+                not = true;
+            }
+            boolean isAnd = false;
+            boolean isOr = false;
+            if (cond instanceof CsvConditionAnd) {
+                if (((CsvConditionAnd) cond).getConditions().length == 1) {
+                    cond = ((CsvConditionAnd) cond).getConditions()[0];
+                } else {
+                    isAnd = true;
+                }
+            }
+
+            if (cond instanceof CsvConditionOr) {
+                if (((CsvConditionOr) cond).getConditions().length == 1) {
+                    cond = ((CsvConditionOr) cond).getConditions()[0];
+                } else {
+                    isOr = true;
+                }
+            }
+
+            
+            // Handle compound conditions as sublists
+            if (isAnd || isOr) {
+                ConditionList subList = new ConditionList(columns);
+                if (csv != null) {
+                    subList.setCsvParser(csv);
+                }
+                subList.addChangeListener(elementChanged);
+                subList.setCondition(cond);
+                
+                if (cond instanceof CsvConditionAnd) {
+                    subList.setAnd();
+                } else if (cond instanceof CsvConditionOr) {
+                    subList.setOr();
+                }
+                
+                subList.setRemovable(true);
+                subLists.add(subList);
+                if (not) {
+                    subList.setNot();
+                }
+
+                // Note: setCondition() already calls populateConditions internally,
+                // so we don't need to call it again here
+            } else {
+                // Handle simple conditions
+                Condition conditionComponent;
+                conditionComponent = conditions.get(conditions.size() - 1);
+                // if (i == 0 && !conditions.isEmpty()) {
+                //     // Use the existing first condition
+                //     conditionComponent = conditions.get();
+                // } else {
+                //     // Create a new condition component
+                //     conditionComponent = new Condition(columns);
+                //     if (csv != null) {
+                //         conditionComponent.setCsvParser(csv);
+                //     }
+                //     conditionComponent.addChangeListener(elementChanged);
+                //     conditions.add(conditionComponent);
+                // }
+                conditionComponent.setColumn(cond.getField());
+                if (cond instanceof CsvConditionFieldCompare) {
+                    conditionComponent.setColumnCompare(((CsvConditionFieldCompare) cond).getCompareField());
+                } else {
+                    conditionComponent.setColumnCompare(null);
+                    conditionComponent.setValue(cond.getValue());
+                }
+                conditionComponent.setComperatorString(cond.getComperatorString());
+                if (not) {
+                    conditionComponent.setNot(true);
+                }   
+                
+            }
+        }
+        
+        // Ensure we always have an empty condition at the end for adding new ones
+        if (conditions.isEmpty() || conditions.get(conditions.size() - 1).getCondition() != null) {
+            Condition emptyCondition = new Condition(columns);
+            if (csv != null) {
+                emptyCondition.setCsvParser(csv);
+            }
+            emptyCondition.addChangeListener(elementChanged);
+            conditions.add(emptyCondition);
+        }
+    }
+    
+    /**
+     * Refreshes the UI by removing and re-adding all components
+     */
+    private void refreshUI() {
+        pList.removeAll();
+        for (Condition c : conditions) {
+            pList.add(c);
+        }
+        for (ConditionList cl : subLists) {
+            pList.add(cl);
+        }
+        pList.revalidate();
+        pList.repaint();
     }
     
     /**
@@ -306,7 +508,6 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
      * WARNING: Do NOT modify this code. The content of this method is always
      * regenerated by the Form Editor.
      */
-    @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
@@ -315,8 +516,9 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
         jScrollPane2 = new javax.swing.JScrollPane();
         pList = new javax.swing.JPanel();
         firstCondition = new org.rappsilber.data.csv.gui.filter.Condition();
+        txtFilterText = new javax.swing.JTextField();
 
-        cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "AND", "OR" }));
+        cbOperant.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "AND", "OR", "TEXT" }));
         cbOperant.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 cbOperantActionPerformed(evt);
@@ -341,38 +543,84 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(cbOperant, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 469, Short.MAX_VALUE)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 399, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(txtFilterText)
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(0, 15, Short.MAX_VALUE)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(cbOperant, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(ckNot))
-                        .addGap(0, 14, Short.MAX_VALUE))
-                    .addComponent(jScrollPane2))
-                .addContainerGap())
+                .addContainerGap(19, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(txtFilterText, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(cbOperant, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(ckNot))
+                .addContainerGap(18, Short.MAX_VALUE))
+            .addGroup(layout.createSequentialGroup()
+                .addGap(6, 6, 6)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 50, Short.MAX_VALUE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
     private void cbOperantActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbOperantActionPerformed
-        if (cbOperant.getSelectedItem().toString().contentEquals("remove")) {
-            notifyChange(new ChangeEvent(this));
-        }
+        javax.swing.SwingUtilities.invokeLater( new Runnable() {
+            public void run() {
+                if (cbOperant.getSelectedItem().toString().contentEquals("TEXT")) {
+                    if (ConditionList.this.cbOperantOld != null && ConditionList.this.cbOperantOld.equals("TEXT"))
+                        return;
+                    ConditionList.this.txtFilterText.setVisible(true);
+
+                    if (ConditionList.this.getCondition() != null) {
+                        ConditionList.this.txtFilterText.setText(ConditionList.this.getCondition().toString());
+                    } else {
+                        ConditionList.this.txtFilterText.setText("");
+                    }
+
+                    ConditionList.this.txtFilterText.setVisible(true);
+                    ConditionList.this.jScrollPane2.setVisible(false);
+
+                    ConditionList.this.revalidate();
+                    ConditionList.this.repaint();
+                    updateANDORTEXT();
+                    cbOperant.setSelectedItem("TEXT");
+                } else if (cbOperant.getSelectedItem().toString().contentEquals("remove")) {
+                    notifyChange(new ChangeEvent(ConditionList.this));
+                } else if (cbOperant.getSelectedItem().toString().contentEquals("GUI")) {
+                    CsvCondition c = null;
+                    try {
+                        c = new CsvConditionParser(ConditionList.this.csv).parse(ConditionList.this.txtFilterText.getText());
+                    } catch (CsvConditionParser.ParseException e){
+                        JOptionPane.showMessageDialog(ConditionList.this, "Can't parse condition \n" + e, "Parsing Error ", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    ConditionList.this.txtFilterText.setVisible(false);
+                    ConditionList.this.clearConditions();
+                    updateANDORTEXT();
+
+                    if (ConditionList.this.txtFilterText.getText().length() > 0)
+                        ConditionList.this.setCondition(c);
+
+                    ConditionList.this.jScrollPane2.setVisible(true);
+
+                    ConditionList.this.revalidate();
+                    ConditionList.this.repaint();
+                }
+                ConditionList.this.cbOperantOld = cbOperant.getSelectedItem().toString();
+            }
+        });
     }//GEN-LAST:event_cbOperantActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox<String> cbOperant;
+    private String cbOperantOld = null;
     private javax.swing.JCheckBox ckNot;
     private org.rappsilber.data.csv.gui.filter.Condition firstCondition;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JPanel pList;
+    private javax.swing.JTextField txtFilterText;
     // End of variables declaration//GEN-END:variables
 
     private boolean doRemove() {

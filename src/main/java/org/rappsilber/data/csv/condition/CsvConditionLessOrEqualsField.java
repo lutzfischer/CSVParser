@@ -11,7 +11,7 @@ import org.rappsilber.data.csv.CsvParser;
 /**
  * CsvConditionStringEqual is used to find rows in a csv-file that have a specific value in the given column
  */
-public class CsvConditionLessOrEqualsField implements CsvCondition {
+public class CsvConditionLessOrEqualsField implements CsvConditionFieldCompare  {
     int field1;
     int field2;
     String fieldName1;
@@ -70,4 +70,20 @@ public class CsvConditionLessOrEqualsField implements CsvCondition {
         return fieldName1;
     }
 
+    @Override
+    public String getCompareField() {
+        return fieldName1;
+    }
+
+    
+    @Override
+    public String getValue() {
+        return fieldName2;
+    }
+
+    @Override
+    public String getComperatorString() {
+        return "<=";
+    }
+    
 }

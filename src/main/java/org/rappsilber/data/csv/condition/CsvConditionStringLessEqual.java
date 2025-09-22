@@ -63,5 +63,16 @@ public class CsvConditionStringLessEqual implements CsvCondition {
     public String getField() {
         return fieldName;
     }
-    
+
+        
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public String getComperatorString() {
+        return "<=";
+    }
+
 }

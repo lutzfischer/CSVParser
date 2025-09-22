@@ -66,4 +66,14 @@ public class CsvConditionStringGreaterThen implements CsvCondition {
     }
     
     
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public String getComperatorString() {
+        return ">";
+    }
+    
 }

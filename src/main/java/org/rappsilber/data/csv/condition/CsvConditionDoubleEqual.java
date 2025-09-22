@@ -63,5 +63,15 @@ public class CsvConditionDoubleEqual implements CsvCondition {
     public String getField() {
         return fieldName;
     }
+
+    @Override
+    public String getValue() {
+        return Double.toString(value);
+    }
+
+    @Override
+    public String getComperatorString() {
+        return "=";
+    }
     
 }

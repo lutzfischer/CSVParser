@@ -24,7 +24,7 @@ public class CsvConditionMissing implements CsvCondition {
         this(field1, null);
     }
 
-    public CsvConditionMissing(int field1, CsvParser parser) {
+    public CsvConditionMissing(int field, CsvParser parser) {
         this.field = field;
         if (parser == null) {
             fieldName = "[" +field +"]";
@@ -55,12 +55,23 @@ public class CsvConditionMissing implements CsvCondition {
 
     
     public String toString() {
-        return "([" + fieldName + "] is missing)";
+        return "([" + fieldName + "] = missing)";
     }      
 
     @Override
     public String getField() {
         return fieldName;
+    }
+
+    
+    @Override
+    public String getValue() {
+        return "missing";
+    }
+
+    @Override
+    public String getComperatorString() {
+        return "= missing";
     }
     
 }

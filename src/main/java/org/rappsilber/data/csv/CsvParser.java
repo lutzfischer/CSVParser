@@ -636,6 +636,34 @@ public class CsvParser {
     public static Boolean guessDelimQuote(File f, int guessLines, UpdatableChar delimiter, UpdatableChar quote) throws FileNotFoundException, IOException {
         return guessDelimQuote(f, guessLines, TEST_DELIMITERS, TEST_QUOTES, delimiter, quote, new ArrayList<String>());
     }
+
+    /**
+     * opens the file and reads a guesslines number of rows and tries to guess what are the correct delimiter and quote characters
+     * @param f
+     * @param guessLines
+     * @param delimiter returns the guest delimiter char
+     * @param quote returns the guest quote char
+     * @return true if there was one setting of delimiter and quote that was better than any other
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    public static Boolean guessDelim(File f, int guessLines, UpdatableChar delimiter, char quote) throws FileNotFoundException, IOException {
+        return guessDelimQuote(f, guessLines, TEST_DELIMITERS, new char[]{quote}, delimiter, new UpdatableChar(), new ArrayList<String>());
+    }    
+
+    /**
+     * opens the file and reads a guesslines number of rows and tries to guess what are the correct delimiter and quote characters
+     * @param f
+     * @param guessLines
+     * @param delimiter returns the guest delimiter char
+     * @param quote returns the guest quote char
+     * @return true if there was one setting of delimiter and quote that was better than any other
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    public static Boolean guessQuote(File f, int guessLines, char delimiter, UpdatableChar quote) throws FileNotFoundException, IOException {
+        return guessDelimQuote(f, guessLines, new char[]{delimiter}, TEST_QUOTES, new UpdatableChar(), quote, new ArrayList<String>());
+    }    
     
     /**
      * opens the file and reads a guesslines number of rows and tries to guess 
