@@ -10,6 +10,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -591,7 +592,7 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
                     CsvCondition c = null;
                     try {
                         c = new CsvConditionParser(ConditionList.this.csv).parse(ConditionList.this.txtFilterText.getText());
-                    } catch (CsvConditionParser.ParseException e){
+                    } catch (ParseException e){
                         JOptionPane.showMessageDialog(ConditionList.this, "Can't parse condition \n" + e, "Parsing Error ", JOptionPane.ERROR_MESSAGE);
                         return;
                     }

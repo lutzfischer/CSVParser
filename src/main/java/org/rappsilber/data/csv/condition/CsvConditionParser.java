@@ -15,6 +15,7 @@
  */
 package org.rappsilber.data.csv.condition;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -86,19 +87,6 @@ public class CsvConditionParser {
     }
     
     /**
-     * Exception thrown when parsing fails
-     */
-    public static class ParseException extends Exception {
-        public ParseException(String message) {
-            super(message);
-        }
-        
-        public ParseException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
-    
-    /**
      * Creates a new parser
      * @param csvParser The CSV parser to use for column name resolution
      */
@@ -114,7 +102,7 @@ public class CsvConditionParser {
      */
     public CsvCondition parse(String expression) throws ParseException {
         if (expression == null || expression.trim().isEmpty()) {
-            throw new ParseException("Expression cannot be null or empty");
+            throw new ParseException("Expression cannot be null or empty", 0);
         }
         
         this.expression = expression.trim();
@@ -124,7 +112,7 @@ public class CsvConditionParser {
         CsvCondition result = parseOrExpression();
         
         if (getCurrentToken().type != TokenType.EOF) {
-            throw new ParseException("Unexpected token at position " + getCurrentToken().position + ": " + getCurrentToken().value);
+            throw new ParseException("Unexpected token at position " + getCurrentToken().position + ": " + getCurrentToken().value, getCurrentToken().position);
         }
         
         return result;
@@ -243,7 +231,7 @@ public class CsvConditionParser {
             }
             
             if (!matched) {
-                throw new ParseException("Unexpected character at position " + pos + ": '" + expression.charAt(pos) + "'");
+                throw new ParseException("Unexpected character at position " + pos + ": '" + expression.charAt(pos) + "'", pos);
             }
         }
         
@@ -276,7 +264,7 @@ public class CsvConditionParser {
     private Token expect(TokenType expectedType) throws ParseException {
         Token token = getCurrentToken();
         if (token.type != expectedType) {
-            throw new ParseException("Expected " + expectedType + " but found " + token.type + " at position " + token.position);
+            throw new ParseException("Expected " + expectedType + " but found " + token.type + " at position " + token.position, token.position);
         }
         nextToken();
         return token;
@@ -346,13 +334,13 @@ public class CsvConditionParser {
         Token leftOperand = getCurrentToken();
         
         if (leftOperand.type != TokenType.COLUMN) {
-            throw new ParseException("Expected column reference at position " + leftOperand.position);
+            throw new ParseException("Expected column reference at position " + leftOperand.position, leftOperand.position);
         }
         nextToken();
         
         Token operator = getCurrentToken();
         if (operator.type != TokenType.OPERATOR) {
-            throw new ParseException("Expected operator at position " + operator.position);
+            throw new ParseException("Expected operator at position " + operator.position, operator.position);
         }
         nextToken();
         
@@ -377,7 +365,7 @@ public class CsvConditionParser {
                 } else if (rightOperand.type == TokenType.STRING_LITERAL) {
                     return new CsvConditionStringContains(leftField, rightOperand.value, csvParser);
                 } else {
-                    throw new ParseException("'contains' operator requires string value or column reference");
+                    throw new ParseException("'contains' operator requires string value or column reference", rightOperand.position);
                 }
                 
             case "equals":
@@ -392,12 +380,12 @@ public class CsvConditionParser {
                         double value = Double.parseDouble(rightOperand.value);
                         return new CsvConditionDoubleEqual(leftField, value, csvParser);
                     } catch (NumberFormatException e) {
-                        throw new ParseException("Invalid numeric value: " + rightOperand.value);
+                        throw new ParseException("Invalid numeric value: " + rightOperand.value, rightOperand.position);
                     }
                 } else if (rightOperand.type == TokenType.MISSING) {
                     return new CsvConditionMissing(leftField, csvParser);
                 } else {
-                    throw new ParseException("Unsupported operand type for equals: " + rightOperand.type);
+                    throw new ParseException("Unsupported operand type for equals: " + rightOperand.type, rightOperand.position);
                 }
                 
             case ">=":
@@ -406,7 +394,7 @@ public class CsvConditionParser {
                         double value = Double.parseDouble(rightOperand.value);
                         return new CsvConditionDoubleGreaterEqual(leftField, value, csvParser);
                     } catch (NumberFormatException e) {
-                        throw new ParseException("Invalid numeric value: " + rightOperand.value);
+                        throw new ParseException("Invalid numeric value: " + rightOperand.value, rightOperand.position);
                     }
                 } else if (rightOperand.type == TokenType.COLUMN) {
                     int rightField = resolveColumnIndex(rightOperand.value);
@@ -414,7 +402,7 @@ public class CsvConditionParser {
                 } else if (rightOperand.type == TokenType.STRING_LITERAL) {
                     return new CsvConditionStringGreaterEqual(leftField, rightOperand.value, csvParser);
                 } else {
-                    throw new ParseException("'>=' operator requires numeric value, string value, or column reference");
+                    throw new ParseException("'>=' operator requires numeric value, string value, or column reference", rightOperand.position);
                 }
                 
             case ">":
@@ -423,7 +411,7 @@ public class CsvConditionParser {
                         double value = Double.parseDouble(rightOperand.value);
                         return new CsvConditionDoubleGreaterThen(leftField, value, csvParser);
                     } catch (NumberFormatException e) {
-                        throw new ParseException("Invalid numeric value: " + rightOperand.value);
+                        throw new ParseException("Invalid numeric value: " + rightOperand.value, rightOperand.position);
                     }
                 } else if (rightOperand.type == TokenType.COLUMN) {
                     int rightField = resolveColumnIndex(rightOperand.value);
@@ -431,7 +419,7 @@ public class CsvConditionParser {
                 } else if (rightOperand.type == TokenType.STRING_LITERAL) {
                     return new CsvConditionStringGreaterThen(leftField, rightOperand.value, csvParser);
                 } else {
-                    throw new ParseException("'>' operator requires numeric value, string value, or column reference");
+                    throw new ParseException("'>' operator requires numeric value, string value, or column reference", rightOperand.position);
                 }
                 
             case "<=":
@@ -440,7 +428,7 @@ public class CsvConditionParser {
                         double value = Double.parseDouble(rightOperand.value);
                         return new CsvConditionDoubleLessEqual(leftField, value, csvParser);
                     } catch (NumberFormatException e) {
-                        throw new ParseException("Invalid numeric value: " + rightOperand.value);
+                        throw new ParseException("Invalid numeric value: " + rightOperand.value, rightOperand.position);
                     }
                 } else if (rightOperand.type == TokenType.COLUMN) {
                     int rightField = resolveColumnIndex(rightOperand.value);
@@ -448,7 +436,7 @@ public class CsvConditionParser {
                 } else if (rightOperand.type == TokenType.STRING_LITERAL) {
                     return new CsvConditionStringLessEqual(leftField, rightOperand.value, csvParser);
                 } else {
-                    throw new ParseException("'<=' operator requires numeric value, string value, or column reference");
+                    throw new ParseException("'<=' operator requires numeric value, string value, or column reference", rightOperand.position);
                 }
                 
             case "<":
@@ -457,7 +445,7 @@ public class CsvConditionParser {
                         double value = Double.parseDouble(rightOperand.value);
                         return new CsvConditionDoubleLessThen(leftField, value, csvParser);
                     } catch (NumberFormatException e) {
-                        throw new ParseException("Invalid numeric value: " + rightOperand.value);
+                        throw new ParseException("Invalid numeric value: " + rightOperand.value, rightOperand.position);
                     }
                 } else if (rightOperand.type == TokenType.COLUMN) {
                     int rightField = resolveColumnIndex(rightOperand.value);
@@ -465,18 +453,18 @@ public class CsvConditionParser {
                 } else if (rightOperand.type == TokenType.STRING_LITERAL) {
                     return new CsvConditionStringLessThen(leftField, rightOperand.value, csvParser);
                 } else {
-                    throw new ParseException("'<' operator requires numeric value, string value, or column reference");
+                    throw new ParseException("'<' operator requires numeric value, string value, or column reference", rightOperand.position);
                 }
                 
             case "~":
                 if (rightOperand.type == TokenType.STRING_LITERAL) {
                     return new CsvConditionStringMatches(leftField, rightOperand.value, csvParser);
                 } else {
-                    throw new ParseException("'matches' operator requires string pattern");
+                    throw new ParseException("'matches' operator requires string pattern", rightOperand.position);
                 }
                 
             default:
-                throw new ParseException("Unsupported operator: " + operator.value);
+                throw new ParseException("Unsupported operator: " + operator.value, operator.position);
         }
     }
     
@@ -495,7 +483,7 @@ public class CsvConditionParser {
                     return index;
                 }
             }
-            throw new ParseException("Unknown column: " + columnRef);
+            throw new ParseException("Unknown column: " + columnRef, 0);
         }
     }
 }

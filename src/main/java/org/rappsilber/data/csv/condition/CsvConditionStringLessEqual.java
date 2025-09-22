@@ -56,7 +56,7 @@ public class CsvConditionStringLessEqual implements CsvCondition {
 
     
     public String toString() {
-        return "([" + fieldName + "] <= \"" + value + "\")";
+        return "([" + fieldName + "] <= '" + value + "')";
     }        
 
     @Override

@@ -57,7 +57,7 @@ public class CsvConditionStringContains implements CsvCondition {
     }
 
     public String toString() {
-        return "([" + fieldName + "] contains \"" + value + "\")";
+        return "([" + fieldName + "] contains '" + value + "')";
     }       
 
     @Override
