@@ -5,6 +5,7 @@
  */
 package org.rappsilber.data.csv.gui.filter;
 
+import java.text.ParseException;
 import org.rappsilber.data.csv.CsvParser;
 import org.rappsilber.data.csv.condition.CsvCondition;
 
@@ -13,7 +14,7 @@ import org.rappsilber.data.csv.condition.CsvCondition;
  * @author Lutz Fischer <lfischer@staffmail.ed.ac.uk>
  */
 public interface CSVConditionProvider {
-    CsvCondition getCondition();
+    CsvCondition getCondition() throws ParseException;
     int setColumns(String[] colnames);
     int setCsvParser(CsvParser csv);
 }

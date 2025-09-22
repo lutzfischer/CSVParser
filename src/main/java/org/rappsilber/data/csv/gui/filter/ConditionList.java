@@ -165,7 +165,9 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
         setCondition(condition);
     }
     
-    public CsvCondition getCondition() {
+    public CsvCondition getCondition() throws ParseException{
+        if (txtFilterText.isVisible())
+            return new CsvConditionParser(csv).parse(txtFilterText.getText());
         if (conditions.size() == 1)
             return null;
         ArrayList<CsvCondition> retl = new ArrayList<>(conditions.size()-1);
@@ -487,7 +489,11 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
                 btnResult.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        txtResult.setText(csv.getCondition().toString());
+                        try {
+                            txtResult.setText(csv.getCondition().toString());
+                        } catch (ParseException ex) {
+                            Logger.getLogger(ConditionList.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                     }
                 });
                 
@@ -569,23 +575,27 @@ public class ConditionList extends javax.swing.JPanel  implements CSVConditionPr
         javax.swing.SwingUtilities.invokeLater( new Runnable() {
             public void run() {
                 if (cbOperant.getSelectedItem().toString().contentEquals("TEXT")) {
-                    if (ConditionList.this.cbOperantOld != null && ConditionList.this.cbOperantOld.equals("TEXT"))
-                        return;
-                    ConditionList.this.txtFilterText.setVisible(true);
-
-                    if (ConditionList.this.getCondition() != null) {
-                        ConditionList.this.txtFilterText.setText(ConditionList.this.getCondition().toString());
-                    } else {
-                        ConditionList.this.txtFilterText.setText("");
+                    try {
+                        if (ConditionList.this.cbOperantOld != null && ConditionList.this.cbOperantOld.equals("TEXT"))
+                            return;
+                        ConditionList.this.txtFilterText.setVisible(true);
+                        
+                        if (ConditionList.this.getCondition() != null) {
+                            ConditionList.this.txtFilterText.setText(ConditionList.this.getCondition().toString());
+                        } else {
+                            ConditionList.this.txtFilterText.setText("");
+                        }
+                        
+                        ConditionList.this.txtFilterText.setVisible(true);
+                        ConditionList.this.jScrollPane2.setVisible(false);
+                        
+                        ConditionList.this.revalidate();
+                        ConditionList.this.repaint();
+                        updateANDORTEXT();
+                        cbOperant.setSelectedItem("TEXT");
+                    } catch (ParseException ex) {
+                        Logger.getLogger(ConditionList.class.getName()).log(Level.SEVERE, null, ex);
                     }
-
-                    ConditionList.this.txtFilterText.setVisible(true);
-                    ConditionList.this.jScrollPane2.setVisible(false);
-
-                    ConditionList.this.revalidate();
-                    ConditionList.this.repaint();
-                    updateANDORTEXT();
-                    cbOperant.setSelectedItem("TEXT");
                 } else if (cbOperant.getSelectedItem().toString().contentEquals("remove")) {
                     notifyChange(new ChangeEvent(ConditionList.this));
                 } else if (cbOperant.getSelectedItem().toString().contentEquals("GUI")) {
