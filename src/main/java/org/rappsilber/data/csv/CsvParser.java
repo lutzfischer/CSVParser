@@ -15,6 +15,7 @@
  */
 package org.rappsilber.data.csv;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,6 +24,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PushbackInputStream;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -38,6 +40,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipEntry;
 import org.rappsilber.utils.BooleanConvert;
 import org.rappsilber.utils.UpdatableChar;
 import org.rappsilber.utils.UpdateableInteger;
@@ -509,13 +513,7 @@ public class CsvParser {
      */
     public void openFile(File f, boolean hasHeader) throws FileNotFoundException, IOException {
         m_inputFile = f;
-        
-        try {
-            GZIPInputStream gzi = new GZIPInputStream(new FileInputStream(f));
-            m_input = new BufferedReader(new InputStreamReader(gzi));
-        } catch (Exception e){
-            m_input = new BufferedReader(new FileReader(f));
-        }
+        m_input = createBufferedReaderFromStream(new FileInputStream(f));
         if (hasHeader)
             readHeader();
     }
@@ -532,7 +530,67 @@ public class CsvParser {
         m_input = f;
         if (hasHeader)
             readHeader();
-    }    
+    }
+    
+    /**
+     * Creates a BufferedReader from an input stream, automatically detecting and handling compression.
+     * Detects and handles:
+     * - GZIP compression (magic bytes 0x1f 0x8b)
+     * - ZIP archives (magic bytes 0x50 0x4b), opens the first file entry
+     * - Plain uncompressed streams
+     * 
+     * @param is the input stream (may be gzip-compressed, zipped, or plain)
+     * @return a BufferedReader wrapping the appropriate decompression stream or raw stream
+     * @throws IOException if an I/O error occurs, or if ZIP file is empty
+     */
+    private static BufferedReader createBufferedReaderFromStream(InputStream is) throws IOException {
+        // 4 bytes needed to disambiguate a real ZIP local-file-header ("PK\x03\x04") from
+        // plain text that happens to start with "PK" (e.g. a "PK" or "PKey" column name)
+        PushbackInputStream pis = new PushbackInputStream(is, 4);
+
+        byte[] magic = new byte[4];
+        int bytesRead = 0;
+        int n;
+        while (bytesRead < magic.length && (n = pis.read(magic, bytesRead, magic.length - bytesRead)) != -1) {
+            bytesRead += n;
+        }
+
+        // Check for gzip magic bytes (0x1f 0x8b)
+        if (bytesRead >= 2 && magic[0] == (byte)0x1f && magic[1] == (byte)0x8b) {
+            // Gzip detected - push back and wrap with GZIPInputStream
+            pis.unread(magic, 0, bytesRead);
+            return new BufferedReader(new InputStreamReader(new GZIPInputStream(pis)));
+        }
+        // Check for one of the real ZIP signatures: local file header (PK\x03\x04),
+        // empty archive / end of central directory (PK\x05\x06), or spanned archive (PK\x07\x08)
+        else if (bytesRead == 4 && magic[0] == (byte)0x50 && magic[1] == (byte)0x4b
+                && ((magic[2] == 0x03 && magic[3] == 0x04)
+                    || (magic[2] == 0x05 && magic[3] == 0x06)
+                    || (magic[2] == 0x07 && magic[3] == 0x08))) {
+            // ZIP detected - push back and open first file entry
+            pis.unread(magic, 0, bytesRead);
+            ZipInputStream zis = new ZipInputStream(pis);
+            ZipEntry entry = zis.getNextEntry();
+            
+            // Skip directories and find first file
+            while (entry != null && entry.isDirectory()) {
+                entry = zis.getNextEntry();
+            }
+            
+            if (entry == null) {
+                throw new IOException("ZIP file is empty or contains only directories");
+            }
+            
+            return new BufferedReader(new InputStreamReader(zis));
+        } 
+        else {
+            // Not gzip or zip - push back what we read and use raw stream
+            if (bytesRead > 0) {
+                pis.unread(magic, 0, bytesRead);
+            }
+            return new BufferedReader(new InputStreamReader(pis));
+        }
+    }
     
     public void openURI(URI f, boolean hasHeader) throws FileNotFoundException, IOException {
         if (f.getScheme().equals("file")) {
@@ -542,7 +600,7 @@ public class CsvParser {
             URLConnection connection = url.openConnection();
             InputStream is = connection.getInputStream();    
             m_inputFile = null;
-            m_input = new BufferedReader(new InputStreamReader(is));
+            m_input = createBufferedReaderFromStream(is);
             if (hasHeader)
                 readHeader();
         }
@@ -663,8 +721,60 @@ public class CsvParser {
      */
     public static Boolean guessQuote(File f, int guessLines, char delimiter, UpdatableChar quote) throws FileNotFoundException, IOException {
         return guessDelimQuote(f, guessLines, new char[]{delimiter}, TEST_QUOTES, new UpdatableChar(), quote, new ArrayList<String>());
-    }    
+    }
     
+    /**
+     * Opens the file and reads a guesslines number of rows and tries to guess what are the correct delimiter and quote characters. 
+     * If the input stream permits setting a mark, the stream will be reset to the position before reading the lines for guessing.  
+     * @param is
+     * @param guessLines
+     * @param delimiter
+     * @param quote
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public static Boolean guessQuote(InputStream is, int guessLines, char delimiter, UpdatableChar quote) throws FileNotFoundException, IOException {
+        return guessDelimQuote(is, guessLines, new char[]{delimiter}, TEST_QUOTES, new UpdatableChar(), quote, new ArrayList<String>());
+    }
+
+    /**
+     * opens the file and reads a guesslines number of rows and tries to guess 
+     * what are the correct delimiter and quote characters from the provided 
+     * choices. If the input stream permits setting a mark, the stream will be 
+     * reset to the position before reading the lines for guessing.
+     * @param f
+     * @param guessLines
+     * @param delimiters set of delimiter characters from which the correct one 
+     * should be guessed.
+     * @param quotes set of quote characters from which the correct one 
+     * should be guessed.
+     * @param delimiter returns the guest delimiter char
+     * @param quote returns the guest quote char
+     * @return true if there was one setting of delimiter and quote that was better than any other
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    public static Boolean guessDelimQuote(InputStream is, int guessLines, char[] delimiters, char[] quotes, UpdatableChar delimiter, UpdatableChar quote, ArrayList<String>  guessedLines) throws FileNotFoundException, IOException {
+        ArrayList<String> allTestLines = guessedLines;
+        int lc = 0;
+        int maxBuffer = 50*1024*1024; // 50 MB should be enough for guessing the parameters
+        if (is.markSupported()) {
+            is.mark(maxBuffer);
+        } else {
+            is = new BufferedInputStream(is);
+            is.mark(maxBuffer);
+        }
+        try {
+            BufferedReader br = createBufferedReaderFromStream(is);
+            // forward maxBuffer/4 so that we can safely cover all utf8 expansions
+            return _guessQuoteFoundInner(guessLines, maxBuffer/4, delimiters, quotes, delimiter, quote, allTestLines, lc, br);
+        } finally {
+            is.reset();
+        }
+
+    }
+
     /**
      * opens the file and reads a guesslines number of rows and tries to guess 
      * what are the correct delimiter and quote characters from the provided 
@@ -684,11 +794,55 @@ public class CsvParser {
     public static Boolean guessDelimQuote(File f, int guessLines, char[] delimiters, char[] quotes, UpdatableChar delimiter, UpdatableChar quote, ArrayList<String>  guessedLines) throws FileNotFoundException, IOException {
         ArrayList<String> allTestLines = guessedLines;
         int lc = 0;
-        String line;        
-        BufferedReader br = new BufferedReader(new FileReader(f));
+        BufferedReader br;
+        br = createBufferedReaderFromStream(new FileInputStream(f));
         
-        while ((line = br.readLine()) != null && lc++<guessLines) {
+        return _guessQuoteFoundInner(guessLines, 0, delimiters, quotes, delimiter, quote, allTestLines, lc, br);
+        
+    }
+
+    
+    private static String readBoundedLine(BufferedReader br, int maxChars) throws IOException {
+        StringBuilder sb = new StringBuilder(maxChars > 0 ? Math.min(maxChars, 8192) : 8192);
+        int c;
+        boolean any = false;
+        if (maxChars  <= 0)
+            return br.readLine();
+        while ((c = br.read()) != -1) {
+            any = true;
+            if (c == '\n') {
+                break;
+            }
+            if (c == '\r') {
+                br.mark(1);
+                if (br.read() != '\n') {
+                    br.reset();
+                }
+                break;
+            }
+            sb.append((char) c);
+            if (maxChars > 0 && sb.length() > maxChars) {
+                throw new IOException("line exceeds maximum of " + maxChars + " characters allowed while guessing parameters");
+            }
+        }
+        return any ? sb.toString() : null;
+    }
+    
+    
+    private static Boolean _guessQuoteFoundInner(int guessLines, int maxChars, char[] delimiters, char[] quotes, UpdatableChar delimiter,
+            UpdatableChar quote, ArrayList<String> allTestLines, int lc, BufferedReader br) throws IOException {
+        String line;
+        int maxLen = 0;
+        int countchars = 0;
+        // assume that lines have more or less the same number of characters 
+        while ((maxChars == 0 || maxChars - countchars - 2 > 0) && (line = readBoundedLine(br, maxChars - countchars - 2)) != null && lc++<guessLines) {
+            if (line.length()>maxLen)
+                maxLen = line.length();
+            countchars += line.length() + 2; // +2 for the line break
             allTestLines.add(line);
+            if (maxChars>0 && countchars + maxLen*3>maxChars) { // make sure that we have enough characters left for another line
+                break;
+            }
         }
         
         if (allTestLines.isEmpty()) {
@@ -770,7 +924,6 @@ public class CsvParser {
         delimiter.value = delimChar;
         quote.value = quoteChar;
         return unique;
-        
     }
     
     /**
