@@ -20,11 +20,13 @@ import java.awt.event.WindowEvent;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
@@ -909,8 +911,12 @@ public class CSVFilteredPanel extends javax.swing.JPanel {
     }
 
     private void btnApplyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnApplyActionPerformed
-        m_csv = m_csvUnfiltered.applyFilter(conditionList1.getCondition());
-        m_model.csvChanged();
+        try {
+            m_csv = m_csvUnfiltered.applyFilter(conditionList1.getCondition());
+            m_model.csvChanged();
+        } catch (ParseException pe) {
+            JOptionPane.showMessageDialog(this, "Applying filter failed\n" + pe, "Applying filter failed", JOptionPane.ERROR_MESSAGE);
+        }
     }//GEN-LAST:event_btnApplyActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
